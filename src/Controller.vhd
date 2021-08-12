@@ -57,10 +57,10 @@ entity VGA_controller is
         reset     : in      std_logic;          -- active low asycnchronous reset
         h_sync    : out     std_logic := '0';   -- horiztonal sync pulse
         v_sync    : out     std_logic := '0';   -- vertical sync pulse
-        pixel_clk : buffer  std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
+        px_clk    : in      std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
         video_on  : out     std_logic := '0';   -- display enable ('1' = display time, '0' = blanking time)
-        col       : out     natural;            -- horizontal pixel coordinate
-        row       : out     natural             -- vertical pixel coordinate
+        col       : out     natural := 0;            -- horizontal pixel coordinate
+        row       : out     natural := 0            -- vertical pixel coordinate
         );
 end  VGA_controller;
 
@@ -72,10 +72,9 @@ architecture Behavioral of VGA_controller is
     begin
 
     -- Signals generation:
-    process(clk, pixel_clk, reset) 
-        begin
-        if (reset = '0') then
-            if (rising_edge(clk)) then
+    process (clk, px_clk, reset) begin
+        if reset = '0' then
+            if rising_edge(clk) then
                 h_count <= 0;
                 h_sync <= '0';  
                 v_count <= 0;
@@ -84,12 +83,12 @@ architecture Behavioral of VGA_controller is
                 row <= 0;
             end if;
 
-        elsif (rising_edge(pixel_clk)) then
+        elsif rising_edge(px_clk) then
 
             -- Counters 
-            if (h_count >= (h_MAX-1)) then
+            if h_count >= h_MAX - 1 then
                 h_count <= 0;
-                if (v_count >= v_MAX-1) then
+                if v_count >= v_MAX - 1 then
                     v_count <= 0;
                 else
                     v_count <= v_count + 1;
@@ -99,22 +98,22 @@ architecture Behavioral of VGA_controller is
             end if;
 
             -- Horizontal sync signal
-            if (h_count < (HD+HFP-1)) or (h_count >= (HD+HFP+HR-1)) then
+            if (h_count < HD + HFP - 1) or (h_count >= HD + HFP + HR - 1) then
                 h_sync <= '1';
             else h_sync <= '0';
             end if;
 
             -- Vertical sync signal
-            if (v_count < (VD+VFP-1)) or (v_count >= (VD+VFP+VR-1)) then
+            if (v_count < VD + VFP - 1) or (v_count >= VD + VFP + VR - 1) then
                 v_sync <= '1';
             else v_sync <= '0';
             end if;
 
             -- Set pixel coordinates
-            if (h_count < HD) then
+            if h_count < HD then
                 col <= h_count;
             end if;
-            if (v_count < VD) then
+            if v_count < VD then
                 row <= v_count;
             end if;
 
