@@ -13,7 +13,7 @@ entity graph is
         VD  : natural := 480   -- vertical display
     );
     port (
-        video_on  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
+        display_enable  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
         row       :  in   natural;    -- row pixel coordinate
         col       :  in   natural;    -- column pixel coordinate
         r         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- red magnitude output to dac
@@ -96,7 +96,7 @@ architecture behavioral of graph is
             data => enemy_ball_rgb
         );
 
-        process(video_on, row, col)
+        process(display_enable, row, col)
 
             variable current_frame : natural := 0;
             variable bar_offset : integer := 0;
@@ -168,7 +168,7 @@ architecture behavioral of graph is
             col_enemy_ball_address <= std_logic_vector( pix_x(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_x(4 downto 0) ) ; -- - rocket_master_coord_x(4 downto 0);
             enemy_ball_addr <= row_enemy_ball_address & col_enemy_ball_address;
 
-            if video_on = '0' then
+            if display_enable = '0' then
                 graph_rgb <= "000"; -- blank
             else 
                 -- priority encoder

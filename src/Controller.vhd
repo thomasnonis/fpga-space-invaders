@@ -57,7 +57,7 @@ entity VGA_controller is
         reset     : in      std_logic;          -- active low asycnchronous reset
         h_sync    : out     std_logic := '0';   -- horiztonal sync pulse
         v_sync    : out     std_logic := '0';   -- vertical sync pulse
-        video_on  : out     std_logic := '0';   -- display enable ('1' = display time, '0' = blanking time)
+        display_enable  : out     std_logic := '0';   -- display enable ('1' = display time, '0' = blanking time)
         col       : out     natural := 0;            -- horizontal pixel coordinate
         row       : out     natural := 0            -- vertical pixel coordinate
         );
@@ -115,9 +115,9 @@ architecture Behavioral of VGA_controller is
 
             -- Display enable generation
             if h_count < HD and v_count < VD then
-                video_on <= '1'; -- enable display
+                display_enable <= '1'; -- enable display
             else
-                video_on <= '0'; -- disable display
+                display_enable <= '0'; -- disable display
             end if;
             
         end if;

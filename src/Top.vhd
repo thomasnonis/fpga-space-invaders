@@ -30,18 +30,18 @@ begin
             reset => reset,
             h_sync => h_sync,
             v_sync => v_sync,
-            video_on => display_enable,
+            display_enable => display_enable,
             col => col,
             row => row
         );
 
     
-    image : entity work.graph
+    image : entity work.image_tester
         Port map(
             r => r,
             g => g,
             b => b,
-            video_on => display_enable,
+            display_enable => display_enable,
             col => col,
             row => row
         );
