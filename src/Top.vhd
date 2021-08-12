@@ -3,23 +3,20 @@ use ieee.std_logic_1164.all;
 
 entity Top is
     Port (
+        sys_clk : in std_logic;
         r : out std_logic_vector(3 downto 0);
         g : out std_logic_vector(3 downto 0);
         b : out std_logic_vector(3 downto 0);
         h_sync : out std_logic;
-        v_sync : out std_logic;
-        sys_clk : in std_logic
+        v_sync : out std_logic
     );
 end Top;
 
 architecture Behavioral of Top is
 
-    constant refresh_rate : real := 60.0;
-
     signal reset : std_logic := '1';
-
+    signal px_clk : std_logic;
     signal display_enable : std_logic; 
-
     signal col : natural;
     signal row : natural;
 
@@ -29,11 +26,10 @@ begin
 
     VGA_Controller : entity work.VGA_controller
         Port map (
-            clk => sys_clk,
+            px_clk => px_clk,
             reset => reset,
             h_sync => h_sync,
             v_sync => v_sync,
-            pixel_clk => px_clk,
             video_on => display_enable,
             col => col,
             row => row

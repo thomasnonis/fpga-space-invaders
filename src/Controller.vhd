@@ -53,11 +53,10 @@ entity VGA_controller is
         VBP : natural := 33     -- v_sync back porch 
     );
     port(
-        clk       : in      std_logic;          -- system clock: 100 MHz in our board
+        px_clk    : in      std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
         reset     : in      std_logic;          -- active low asycnchronous reset
         h_sync    : out     std_logic := '0';   -- horiztonal sync pulse
         v_sync    : out     std_logic := '0';   -- vertical sync pulse
-        px_clk    : in      std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
         video_on  : out     std_logic := '0';   -- display enable ('1' = display time, '0' = blanking time)
         col       : out     natural := 0;            -- horizontal pixel coordinate
         row       : out     natural := 0            -- vertical pixel coordinate
@@ -72,17 +71,14 @@ architecture Behavioral of VGA_controller is
     begin
 
     -- Signals generation:
-    process (clk, px_clk, reset) begin
+    process (px_clk, reset) begin
         if reset = '0' then
-            if rising_edge(clk) then
-                h_count <= 0;
-                h_sync <= '0';  
-                v_count <= 0;
-                v_sync <= '0';  
-                col <= 0;
-                row <= 0;
-            end if;
-
+            h_count <= 0;
+            h_sync <= '0';  
+            v_count <= 0;
+            v_sync <= '0';  
+            col <= 0;
+            row <= 0;
         elsif rising_edge(px_clk) then
 
             -- Counters 
@@ -123,6 +119,7 @@ architecture Behavioral of VGA_controller is
             else
                 video_on <= '0'; -- disable display
             end if;
+            
         end if;
     end process;
 end architecture Behavioral;
