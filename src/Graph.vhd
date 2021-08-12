@@ -33,16 +33,16 @@ architecture behavioral of graph is
     -- SIZE AND BOUNDARY OF THE OBJECTS --
     -- Spaceship user
     -- BAR AS SQUARE
-    constant BAR_X_SIZE : natural := 40;
-    constant BAR_Y_SIZE : natural := 40;
+    constant SHIP_WIDTH : natural := 40;
+    constant SHIP_HEIGHT : natural := 40;
 
-    constant BAR_X_L :  natural := HD/2 - BAR_X_SIZE/2;
-    constant BAR_X_R :  natural := HD/2 + BAR_X_SIZE/2; 
+    constant SHIP_X_L :  natural := HD/2 - SHIP_WIDTH/2;
+    constant SHIP_X_R :  natural := HD/2 + SHIP_WIDTH/2; 
 
-    constant BAR_Y_B: integer := VD - 20;  
-    constant BAR_Y_T: integer := BAR_Y_B - BAR_Y_SIZE;
+    constant SHIP_Y_B: integer := VD - 20;  
+    constant SHIP_Y_T: integer := SHIP_Y_B - SHIP_HEIGHT;
 
-    constant BAR_STEP: natural := 30;
+    constant SHIP_STEP: natural := 30;
  
     -- Wall of aliens
     constant WALL_Y_T: natural := 0; 
@@ -53,32 +53,7 @@ architecture behavioral of graph is
     -- Missile
     constant BALL_SIZE : natural := 8;
 
-    -- --TODO inizilizzarli
-    -- signal ball_x_l: unsigned(9 downto 0) := "0000001000"; -- 8
-    -- signal ball_x_r: unsigned(9 downto 0) := "0001000000"; -- 64
-    -- signal ball_y_t: unsigned(9 downto 0) := "0000001000"; -- 8
-    -- signal ball_y_b: unsigned(9 downto 0) := "0001000000"; -- 64
-
-    -- type rom_type is array(0 to 7) of  std_logic_vector(0 to 7); 
-    -- constant BALL_ROM : rom_type := (   
-    --     "00111100", 
-    --     "01111110",
-    --     "11111111", 
-    --     "11111111", 
-    --     "11111111", 
-    --     "11111111",
-    --     "01111110",
-    --     "00111100"
-    -- );
-
-    -- signal rom_rocket_addr : unsigned(2 downto 0) := "000"; 
-    -- rom_col: unsigned(2 downto 0) := "000"; 
-    -- signal rom_data: std_logic_vector(7 downto 0)  := "00000000";
-    -- signal rom_bit: std_logic := '1';
-
     signal bar_on, wall_on, game_over, win : std_logic := '0';
-    -- signal sq_ball_on : std_logic := '0'; -- to indicate if scan coord is within square that contains the round ball
-    -- signal rd_ball_on: std_logic := '0'; -- to indicate if scan coord is within round ball 
     signal bar_rgb, wall_rgb, ball_rgb, game_over_rgb, win_rgb : std_logic_vector(2 downto 0) := "000";
     
 
@@ -131,7 +106,6 @@ architecture behavioral of graph is
             constant rocket_STEP : unsigned(4 downto 0) := "10000"; --32
             variable enemy_ball_offset_x : unsigned (9 downto 0) := "0000000000";
             variable enemy_ball_offset_y : unsigned (9 downto 0) := "0000000000";
-            -- variable enemy_ball_x_or_y : integer := 0; -- decide to move to x or to y
             constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000"; --32
 
         begin
@@ -147,36 +121,20 @@ architecture behavioral of graph is
             
             bar_on  <= '0';
             wall_on <= '0';
-            --sq_ball_on <= '0'; 
-            --rd_ball_on <= '0';
             game_over <= '0';
             win <= '0';
 
             -- activation boundaries for the bar
-            if ((col >= BAR_X_L+bar_offset) and (col <= BAR_X_R+bar_offset) and (BAR_Y_T <= row) and (row <= BAR_Y_B)) then
+            if ((col >= SHIP_X_L+bar_offset) and (col <= SHIP_X_R+bar_offset) and (SHIP_Y_T <= row) and (row <= SHIP_Y_B)) then
                 bar_on <= '1';
             end if; 
                     
             if ((row >= WALL_Y_T+wall_offset) and (row <= WALL_Y_B+wall_offset)) then
                 wall_on <= '1';
             end if;
-        
-            -- if ((ball_x_l <= col) and (col <= ball_x_r) and (ball_y_t <= row) and (row <= ball_y_b)) then
-            --     sq_ball_on <= '1';
-            -- end if;
-
-            -- map scan coord to ROM alien_addr/col
-            -- rom_alien_addr <= pix_y(2 downto 0) - ball_y_t(2 downto 0);
-            -- rom_col  <= pix_x(2 downto 0) - ball_x_l(2 downto 0);
-            -- rom_data <= BALL_ROM(to_integer(rom_alien_addr)); -- select one of the arrays in the ball_rom
-            -- rom_bit <=  rom_data(to_integer(rom_col)); -- select value by value 1/0 of the rom_data
-
-            -- if (sq_ball_on = '1') and (rom_bit = '1') then
-            --     rd_ball_on <= '1';
-            -- end if ;
 
             -- game over if the wall touch the top of the bar
-            if ((WALL_Y_B+wall_offset >= BAR_Y_T) or (BAR_Y_T <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y)) then
+            if ((WALL_Y_B+wall_offset >= SHIP_Y_T) or (SHIP_Y_T <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y)) then
                 game_over <= '1';
             end if;
 
@@ -239,10 +197,10 @@ architecture behavioral of graph is
                     current_frame := current_frame + 1;
 
                     -- check if the bar hit the right or left spot
-                    if ((BAR_X_R+bar_offset) + BAR_STEP >= HD - 1) then 
+                    if ((SHIP_X_R+bar_offset) + SHIP_STEP >= HD - 1) then 
                         hit_l := '0';
                         hit_r := '1';
-                    elsif ((BAR_X_L+bar_offset) - BAR_STEP <= 0) then
+                    elsif ((SHIP_X_L+bar_offset) - SHIP_STEP <= 0) then
                         hit_r := '0';
                         hit_l := '1';
                     end if;
@@ -252,24 +210,11 @@ architecture behavioral of graph is
                     rocket_offset_y := rocket_offset_y - rocket_STEP - rocket_STEP;
 
                     if hit_r = '1' then
-                        bar_offset := bar_offset - BAR_STEP;
-                        --wall_offset := wall_offset + WALL_STEP;
+                        bar_offset := bar_offset - SHIP_STEP;
                     elsif hit_l = '1' then
-                        bar_offset := bar_offset + BAR_STEP;
-                        --wall_offset := wall_offset + WALL_STEP;
+                        bar_offset := bar_offset + SHIP_STEP;
                     else
-                        bar_offset := bar_offset + BAR_STEP;
-                        --wall_offset := wall_offset + WALL_STEP;
-                        -- decide to move to x or to y
-                        -- if (rocket_x_or_y mod 2 /= 0) then
-                        --     rocket_offset_x := rocket_offset_x - rocket_STEP;
-                        -- else
-                        --     rocket_offset_y := rocket_offset_y - rocket_STEP;
-                        -- end if;
-                        --alien_x_or_y := alien_x_or_y + 1;
-                         --twice sub due to debugging
-                        -- enemy ball go just down not moving along x axis
-                        -- enemy_ball_offset_y := enemy_ball_offset_y + rocket_STEP;
+                        bar_offset := bar_offset + SHIP_STEP;
                         
 
                     end if;
