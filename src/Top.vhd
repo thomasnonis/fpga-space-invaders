@@ -8,7 +8,7 @@ entity Top is
         b : out std_logic_vector(3 downto 0);
         h_sync : out std_logic;
         v_sync : out std_logic;
-        px_clk : buffer std_logic
+        sys_clk : in std_logic
     );
 end Top;
 
@@ -25,9 +25,11 @@ architecture Behavioral of Top is
 
 begin
 
+    clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
+
     VGA_Controller : entity work.VGA_controller
         Port map (
-            clk => px_clk,
+            clk => sys_clk,
             reset => reset,
             h_sync => h_sync,
             v_sync => v_sync,
