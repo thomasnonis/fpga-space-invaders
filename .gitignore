@@ -1,0 +1,14 @@
+# Ignore
+/_old
+/Media
+/RomTxt
+/SpaceInvaders_Project
+
+*.code-workspace
+# Except
+
+!/.gitignore
+
+!*.vhd
+
+# !/src/**
