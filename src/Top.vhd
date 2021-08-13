@@ -15,14 +15,14 @@ end Top;
 architecture Behavioral of Top is
 
     signal reset : std_logic := '1';
-    signal px_clk : std_logic;
+    signal px_clk : std_logic := '1';
     signal display_enable : std_logic; 
     signal col : natural;
     signal row : natural;
 
 begin
 
-    clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
+    -- clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
 
     VGA_Controller : entity work.VGA_controller
         Port map (
@@ -36,7 +36,7 @@ begin
         );
 
     
-    image : entity work.image_tester
+    image : entity work.Graph
         Port map(
             r => r,
             g => g,
@@ -45,5 +45,10 @@ begin
             col => col,
             row => row
         );
+
+    clk_sim: process begin
+        px_clk <= not px_clk;
+        wait for 20 ns;
+    end process;
 
 end Behavioral;
