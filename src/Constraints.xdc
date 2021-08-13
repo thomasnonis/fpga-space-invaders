@@ -25,11 +25,11 @@ set_property PACKAGE_PIN Y19  [get_ports {v_sync}];  # "VGA-VS"
 # ----------------------------------------------------------------------------
 # User Push Buttons - Bank 34
 # ---------------------------------------------------------------------------- 
-# set_property PACKAGE_PIN P16 [get_ports {screen_on}];  # "BTNC"
-# set_property PACKAGE_PIN R16 [get_ports {poweroff}];  # "BTND"
-# set_property PACKAGE_PIN N15 [get_ports {screen_off}];  # "BTNL"
-# set_property PACKAGE_PIN R18 [get_ports {BTNR}];  # "BTNR"
-# set_property PACKAGE_PIN T18 [get_ports {init_oled}];  # "BTNU"
+set_property PACKAGE_PIN P16 [get_ports {btn_mid}];  # "BTNC"
+set_property PACKAGE_PIN R16 [get_ports {btn_down}];  # "BTND"
+set_property PACKAGE_PIN N15 [get_ports {btn_left}];  # "BTNL"
+set_property PACKAGE_PIN R18 [get_ports {btn_right}];  # "BTNR"
+set_property PACKAGE_PIN T18 [get_ports {btn_up}];  # "BTNU"
 
 # ----------------------------------------------------------------------------
 # User DIP Switches - Bank 35

@@ -16,6 +16,7 @@ entity graph is
         display_enable  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
         row       :  in   natural;    -- row pixel coordinate
         col       :  in   natural;    -- column pixel coordinate
+        up, down, left, right, mid : in std_logic;
         r         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- red magnitude output to dac
         g         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- green magnitude output to dac
         b         :  out  std_logic_vector(3 downto 0) := (others => '0')   -- blue magnitude output to dac
@@ -53,8 +54,8 @@ architecture behavioral of graph is
     -- Missile
     constant BALL_SIZE : natural := 8;
 
-    signal bar_on, wall_on, game_over, win : std_logic := '0';
-    signal bar_rgb, wall_rgb, ball_rgb, game_over_rgb, win_rgb : std_logic_vector(2 downto 0) := "000";
+    signal ship_on, wall_on, game_over, win : std_logic := '0';
+    signal ship_rgb, wall_rgb, ball_rgb, game_over_rgb, win_rgb : std_logic_vector(2 downto 0) := "000";
     
 
     -- ROCKET CODE
@@ -96,10 +97,10 @@ architecture behavioral of graph is
             data => enemy_ball_rgb
         );
 
-        process(display_enable, row, col)
+        process(row, col, up, down, left, right, mid)
 
             variable current_frame : natural := 0;
-            variable bar_offset : integer := 0;
+            variable ship_offset : integer := 0;
             variable hit_r, hit_l : std_logic := '0'; -- hit right, hit left
             variable wall_offset : integer := 0;
             variable rocket_offset_x : unsigned (9 downto 0) := "0000000000";
@@ -115,27 +116,27 @@ architecture behavioral of graph is
             pix_y <= to_unsigned(row, 10); 
             pix_x <= to_unsigned(col, 10);
 
-            bar_rgb  <= "010"; -- green
+            ship_rgb  <= "010"; -- green
             wall_rgb <= "001"; -- blue
             ball_rgb <= "101"; -- purple
             game_over_rgb <= "100"; -- red
             win_rgb <= "010"; -- green
             
-            bar_on  <= '0';
+            ship_on  <= '0';
             wall_on <= '0';
             game_over <= '0';
             win <= '0';
 
-            -- activation boundaries for the bar
-            if (col >= SHIP_X_L + bar_offset) and (col <= SHIP_X_R + bar_offset) and (SHIP_Y_T <= row) and (row <= SHIP_Y_B) then
-                bar_on <= '1';
+            -- activation boundaries for the ship
+            if (col >= SHIP_X_L + ship_offset) and (col <= SHIP_X_R + ship_offset) and (SHIP_Y_T <= row) and (row <= SHIP_Y_B) then
+                ship_on <= '1';
             end if; 
                     
             if (row >= WALL_Y_T + wall_offset) and (row <= WALL_Y_B + wall_offset) then
                 wall_on <= '1';
             end if;
 
-            -- game over if the wall touch the top of the bar
+            -- game over if the wall touch the top of the ship
             if (WALL_Y_B + wall_offset >= SHIP_Y_T) or (SHIP_Y_T <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
                 game_over <= '1';
             end if;
@@ -169,55 +170,55 @@ architecture behavioral of graph is
             enemy_ball_addr <= row_enemy_ball_address & col_enemy_ball_address;
 
 
-            if display_enable = '0' then
-                -- not needed anymore, can delete true condition
-                graph_rgb <= "000"; -- blank
-            else 
-                -- priority encoder
-                if bar_on = '1' then 
-                    graph_rgb <= bar_rgb;
-                elsif wall_on = '1' then
-                    graph_rgb <= wall_rgb;
-                elsif rocket_on = '1' then
-                    graph_rgb <= rocket_rgb;
-                elsif enemy_ball_on = '1' then
-                    graph_rgb <= enemy_ball_rgb;
-                elsif game_over = '1' then
-                    graph_rgb <= game_over_rgb;
-                elsif win = '1' then
-                    graph_rgb <= win_rgb;
-                else
-                    graph_rgb <= "000"; -- background
+            -- priority encoder
+            if ship_on = '1' then 
+                graph_rgb <= ship_rgb;
+            elsif wall_on = '1' then
+                graph_rgb <= wall_rgb;
+            elsif rocket_on = '1' then
+                graph_rgb <= rocket_rgb;
+            elsif enemy_ball_on = '1' then
+                graph_rgb <= enemy_ball_rgb;
+            elsif game_over = '1' then
+                graph_rgb <= game_over_rgb;
+            elsif win = '1' then
+                graph_rgb <= win_rgb;
+            else
+                graph_rgb <= "000"; -- background
+            end if;
+
+            if row = VD - 1 and col = HD - 1 then 
+            -- frame update
+                current_frame := current_frame + 1;
+
+                -- check if the ship hit the right or left spot
+                if SHIP_X_R + ship_offset + SHIP_STEP >= HD - 1 then 
+                    hit_l := '0';
+                    hit_r := '1';
+                elsif SHIP_X_L + ship_offset - SHIP_STEP <= 0 then
+                    hit_r := '0';
+                    hit_l := '1';
                 end if;
 
-                if row = VD - 1 and col = HD - 1 then 
-                    -- frame update
-                    current_frame := current_frame + 1;
+                -- changing ship_offset by reading the hit flags. wall_offset change too.
+                enemy_ball_offset_y := enemy_ball_offset_y + ROCKET_STEP;
+                wall_offset := wall_offset + WALL_STEP;
+                rocket_offset_y := rocket_offset_y - ROCKET_STEP - ROCKET_STEP;
 
-                    -- check if the bar hit the right or left spot
-                    if SHIP_X_R + bar_offset + SHIP_STEP >= HD - 1 then 
-                        hit_l := '0';
-                        hit_r := '1';
-                    elsif SHIP_X_L + bar_offset - SHIP_STEP <= 0 then
-                        hit_r := '0';
-                        hit_l := '1';
-                    end if;
+                -- if hit_r = '1' then
+                --     ship_offset := ship_offset - SHIP_STEP;
+                -- elsif hit_l = '1' then
+                --     ship_offset := ship_offset + SHIP_STEP;
+                -- else
+                --     ship_offset := ship_offset + SHIP_STEP;
+                -- end if;
 
-                    -- changing bar_offset by reading the hit flags. wall_offset change too.
-                    enemy_ball_offset_y := enemy_ball_offset_y + ROCKET_STEP;
-                    wall_offset := wall_offset + WALL_STEP;
-                    rocket_offset_y := rocket_offset_y - ROCKET_STEP - ROCKET_STEP;
-
-                    if hit_r = '1' then
-                        bar_offset := bar_offset - SHIP_STEP;
-                    elsif hit_l = '1' then
-                        bar_offset := bar_offset + SHIP_STEP;
-                    else
-                        bar_offset := bar_offset + SHIP_STEP;
-                        
-
-                    end if;
+                if left = '1' and SHIP_X_R + ship_offset + SHIP_STEP < HD - 1 then
+                    ship_offset := ship_offset - SHIP_STEP;
+                elsif right = '1' and SHIP_X_L + ship_offset - SHIP_STEP > 0 then
+                    ship_offset := ship_offset + SHIP_STEP;
                 end if;
+
             end if;
 
         end process;

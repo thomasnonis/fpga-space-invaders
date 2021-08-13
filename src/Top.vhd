@@ -4,6 +4,11 @@ use ieee.std_logic_1164.all;
 entity Top is
     Port (
         sys_clk : in std_logic;
+        btn_up : in std_logic;
+        btn_down : in std_logic;
+        btn_left : in std_logic;
+        btn_right : in std_logic;
+        btn_mid : in std_logic;
         r : out std_logic_vector(3 downto 0);
         g : out std_logic_vector(3 downto 0);
         b : out std_logic_vector(3 downto 0);
@@ -19,10 +24,11 @@ architecture Behavioral of Top is
     signal display_enable : std_logic; 
     signal col : natural;
     signal row : natural;
+    signal up, down, left, right, mid : std_logic;
 
 begin
 
-    -- clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
+    clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
 
     VGA_Controller : entity work.VGA_controller
         Port map (
@@ -38,17 +44,57 @@ begin
     
     image : entity work.Graph
         Port map(
+            display_enable => display_enable,
+            row => row,
+            col => col,
+            up => up,
+            down => down,
+            left => left,
+            right => right,
+            mid => mid,
             r => r,
             g => g,
-            b => b,
-            display_enable => display_enable,
-            col => col,
-            row => row
+            b => b
         );
 
-    clk_sim: process begin
-        px_clk <= not px_clk;
-        wait for 20 ns;
-    end process;
+    up_db: entity work.Debouncer Port map (
+        clk => sys_clk,
+        reset => '1',
+        btn_in => btn_up,
+        btn_out => up
+    );
+
+    down_db: entity work.Debouncer Port map (
+        clk => sys_clk,
+        reset => '1',
+        btn_in => btn_down,
+        btn_out => down
+    );
+
+    left_db: entity work.Debouncer Port map (
+        clk => sys_clk,
+        reset => '1',
+        btn_in => btn_left,
+        btn_out => left
+    );
+
+    right_db: entity work.Debouncer Port map (
+        clk => sys_clk,
+        reset => '1',
+        btn_in => btn_right,
+        btn_out => right
+    );
+
+    mid_db: entity work.Debouncer Port map (
+        clk => sys_clk,
+        reset => '1',
+        btn_in => btn_mid,
+        btn_out => mid
+    );
+
+    -- clk_sim: process begin
+    --     px_clk <= not px_clk;
+    --     wait for 20 ns;
+    -- end process;
 
 end Behavioral;
