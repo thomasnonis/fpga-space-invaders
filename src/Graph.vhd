@@ -2,10 +2,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
---use std.textio.all;
-
--- Alien old is alien rom type
--- Actual alien is the rocket
 
 entity graph is
     generic (
@@ -25,38 +21,61 @@ end graph;
 
 architecture behavioral of graph is
 
-    constant every_n_frames : natural := 2;
+    -- Color constants definition
+    constant RED : std_logic_vector(2 downto 0) := "100";
+    constant GREEN : std_logic_vector(2 downto 0) := "010";
+    constant BLUE : std_logic_vector(2 downto 0) := "001";
+    constant CYAN : std_logic_vector(2 downto 0) := "011";
+    constant MAGENTA : std_logic_vector(2 downto 0) := "101";
+    constant YELLOW : std_logic_vector(2 downto 0) := "110";
+    constant BLACK : std_logic_vector(2 downto 0) := "000";
+    constant WHITE : std_logic_vector(2 downto 0) := "111";
 
-    -- Basta inizializzare questi 3 segnali per rimuovere i warnings
-    signal pix_x, pix_y : unsigned(9 downto 0) := "0000000000";
-    signal graph_rgb : std_logic_vector(2 downto 0) := "000";
+    constant every_n_frames : natural := 60;
 
     -- SIZE AND BOUNDARY OF THE OBJECTS --
-    -- Spaceship user
-    -- BAR AS SQUARE
+
+    -- SHIP
     constant SHIP_WIDTH : natural := 40;
     constant SHIP_HEIGHT : natural := 40;
-
+    -- Left boundary of ship intialized at center - half width
     constant SHIP_X_L :  natural := HD/2 - SHIP_WIDTH/2;
+    -- Right boundary of ship intialized at center + half width
     constant SHIP_X_R :  natural := HD/2 + SHIP_WIDTH/2; 
-
+    -- Bottom boundary of ship initialized at bottom of screen - 20
     constant SHIP_Y_B: integer := VD - 20;  
+    -- Top boundary of ship initialized at desired height with respect to bottom
     constant SHIP_Y_T: integer := SHIP_Y_B - SHIP_HEIGHT;
-
-    constant SHIP_STEP: natural := 30;
  
     -- Wall of aliens
     constant WALL_Y_T: natural := 0; 
     constant WALL_Y_B: natural := 50;
-
-    constant WALL_STEP: natural := 5; --30;
-
-    -- Missile
-    constant BALL_SIZE : natural := 8;
-
-    signal ship_on, wall_on, game_over, win : std_logic := '0';
-    signal ship_rgb, wall_rgb, ball_rgb, game_over_rgb, win_rgb : std_logic_vector(2 downto 0) := "000";
     
+
+    -- COLOR SIGNALS (used as constants for testing with simple shapes) --
+    signal ship_rgb : std_logic_vector(2 downto 0) := GREEN;
+    signal wall_rgb : std_logic_vector(2 downto 0) := BLUE;
+    signal ball_rgb : std_logic_vector(2 downto 0) := MAGENTA;
+    signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
+    signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
+    signal rocket_rgb : std_logic_vector(2 downto 0);
+    signal enemy_ball_rgb : std_logic_vector(2 downto 0);
+
+
+    -- STEPS --
+    -- Step for each movement of ship
+    constant SHIP_STEP: natural := 10; --30
+    constant WALL_STEP: natural := 5; --30;
+    constant ROCKET_STEP : unsigned(4 downto 0) := "10000"; --32
+    constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000"; --32
+
+
+    -- ??
+    signal pix_x, pix_y : unsigned(9 downto 0) := "0000000000";
+    -- Simplified internal signal for 3bit color
+    signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
+    -- Flags
+    signal ship_on, wall_on, game_over, win : std_logic := '0';    
 
     -- ROCKET CODE
     -- width of the alien area (8 * 32)
@@ -67,7 +86,6 @@ architecture behavioral of graph is
     -- alien_addr <= (row_alien_address & col_alien_address);
     signal rocket_addr: std_logic_vector(9 downto 0) := "0000000000";
     signal row_rocket_address, col_rocket_address: std_logic_vector(4 downto 0) := "00000";
-    signal rocket_rgb : std_logic_vector(2 downto 0);
     -- 3rd level aliens are at the bottom (64px below master coord)
     constant OFFSET: integer := 64;
     -- master chords (them would be an input)
@@ -80,7 +98,6 @@ architecture behavioral of graph is
     signal enemy_ball_addr: std_logic_vector(9 downto 0) := "0000000000";
     signal row_enemy_ball_address, col_enemy_ball_address: std_logic_vector(4 downto 0) := "00000";
     signal enemy_ball_on: std_logic := '0';
-    signal enemy_ball_rgb : std_logic_vector(2 downto 0);
     -- master chords (them would be an input)
     signal enemy_ball_master_coord_x: unsigned (9 downto 0) := "0000000000"; 
     signal enemy_ball_master_coord_y: unsigned (9 downto 0) := "0000000000";
@@ -106,27 +123,26 @@ architecture behavioral of graph is
             variable rocket_offset_x : unsigned (9 downto 0) := "0000000000";
             variable rocket_offset_y : unsigned (9 downto 0) := "0000000000";
             variable rocket_x_or_y : integer := 0; -- decide to move to x or to y
-            constant ROCKET_STEP : unsigned(4 downto 0) := "10000"; --32
             variable enemy_ball_offset_x : unsigned (9 downto 0) := "0000000000";
             variable enemy_ball_offset_y : unsigned (9 downto 0) := "0000000000";
-            constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000"; --32
 
         begin
+
+            current_frame := current_frame + 1;
+
+            if current_frame > every_n_frames then
+                current_frame := 0;
+            end if;
             
             pix_y <= to_unsigned(row, 10); 
             pix_x <= to_unsigned(col, 10);
 
-            ship_rgb  <= "010"; -- green
-            wall_rgb <= "001"; -- blue
-            ball_rgb <= "101"; -- purple
-            game_over_rgb <= "100"; -- red
-            win_rgb <= "010"; -- green
-            
             ship_on  <= '0';
             wall_on <= '0';
             game_over <= '0';
             win <= '0';
 
+            -- Set flags to decide what to draw on screen
             -- activation boundaries for the ship
             if (col >= SHIP_X_L + ship_offset) and (col <= SHIP_X_R + ship_offset) and (SHIP_Y_T <= row) and (row <= SHIP_Y_B) then
                 ship_on <= '1';
@@ -153,6 +169,7 @@ architecture behavioral of graph is
                 rocket_on <= '0';
             end if;
 
+            -- calculate address of px of rom
             row_rocket_address <= std_logic_vector( pix_y(4 downto 0) - rocket_master_coord_y(4 downto 0) - rocket_offset_y(4 downto 0) ) ; 
             col_rocket_address <= std_logic_vector( pix_x(4 downto 0) - rocket_master_coord_x(4 downto 0) - rocket_offset_x(4 downto 0) ) ;
             rocket_addr <= row_rocket_address & col_rocket_address;
@@ -165,6 +182,7 @@ architecture behavioral of graph is
                 enemy_ball_on <= '0';
             end if;
 
+            -- calculate address of px of rom
             row_enemy_ball_address <= std_logic_vector( pix_y(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_y(4 downto 0) ) ; --- rocket_master_coord_y(4 downto 0);
             col_enemy_ball_address <= std_logic_vector( pix_x(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_x(4 downto 0) ) ; -- - rocket_master_coord_x(4 downto 0);
             enemy_ball_addr <= row_enemy_ball_address & col_enemy_ball_address;
@@ -180,16 +198,15 @@ architecture behavioral of graph is
             elsif enemy_ball_on = '1' then
                 graph_rgb <= enemy_ball_rgb;
             elsif game_over = '1' then
-                graph_rgb <= game_over_rgb;
+                graph_rgb <= gameover_rgb;
             elsif win = '1' then
                 graph_rgb <= win_rgb;
             else
-                graph_rgb <= "000"; -- background
+                graph_rgb <= BLACK; -- background
             end if;
 
             if row = VD - 1 and col = HD - 1 then 
             -- frame update
-                current_frame := current_frame + 1;
 
                 -- check if the ship hit the right or left spot
                 if SHIP_X_R + ship_offset + SHIP_STEP >= HD - 1 then 
@@ -213,9 +230,9 @@ architecture behavioral of graph is
                 --     ship_offset := ship_offset + SHIP_STEP;
                 -- end if;
 
-                if left = '1' and SHIP_X_R + ship_offset + SHIP_STEP < HD - 1 then
+                if left = '1' then
                     ship_offset := ship_offset - SHIP_STEP;
-                elsif right = '1' and SHIP_X_L + ship_offset - SHIP_STEP > 0 then
+                elsif right = '1' then
                     ship_offset := ship_offset + SHIP_STEP;
                 end if;
 
