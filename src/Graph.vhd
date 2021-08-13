@@ -60,6 +60,8 @@ architecture behavioral of graph is
     signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
     signal rocket_rgb : std_logic_vector(2 downto 0);
     signal enemy_ball_rgb : std_logic_vector(2 downto 0);
+    -- main signal for px color
+    signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
 
 
     -- STEPS --
@@ -71,9 +73,7 @@ architecture behavioral of graph is
 
 
     -- ??
-    signal pix_x, pix_y : unsigned(9 downto 0) := "0000000000";
-    -- Simplified internal signal for 3bit color
-    signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
+    signal pix_x, pix_y : unsigned(9 downto 0) := "0000000000";  
     -- Flags
     signal ship_on, wall_on, game_over, win : std_logic := '0';    
 
@@ -128,10 +128,12 @@ architecture behavioral of graph is
 
         begin
 
-            current_frame := current_frame + 1;
+            if row = 0 and col = 0 then
+                current_frame := current_frame + 1;
 
-            if current_frame > every_n_frames then
-                current_frame := 0;
+                if current_frame > every_n_frames then
+                    current_frame := 0;
+                end if;
             end if;
             
             pix_y <= to_unsigned(row, 10); 
