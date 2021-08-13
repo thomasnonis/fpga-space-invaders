@@ -168,7 +168,9 @@ architecture behavioral of graph is
             col_enemy_ball_address <= std_logic_vector( pix_x(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_x(4 downto 0) ) ; -- - rocket_master_coord_x(4 downto 0);
             enemy_ball_addr <= row_enemy_ball_address & col_enemy_ball_address;
 
+
             if display_enable = '0' then
+                -- not needed anymore, can delete true condition
                 graph_rgb <= "000"; -- blank
             else 
                 -- priority encoder
@@ -218,11 +220,11 @@ architecture behavioral of graph is
                 end if;
             end if;
 
-            r <= (others => graph_rgb(2)); 
-            g <= (others => graph_rgb(1));
-            b <= (others => graph_rgb(0));
-
         end process;
+
+        r <= (others => graph_rgb(2)) when display_enable = '1' else (others => '0'); 
+        g <= (others => graph_rgb(1)) when display_enable = '1' else (others => '0');
+        b <= (others => graph_rgb(0)) when display_enable = '1' else (others => '0');
 
         
 
