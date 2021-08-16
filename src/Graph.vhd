@@ -64,7 +64,7 @@ architecture behavioral of graph is
     -- Step for each movement of ship
     constant SHIP_STEP: natural := 10; --30
     constant WALL_STEP: natural := 5; --30;
-    constant ROCKET_STEP : unsigned(4 downto 0) := "10000"; --32
+    constant ROCKET_STEP : natural := 16;
     constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000";
 
 
@@ -73,20 +73,21 @@ architecture behavioral of graph is
     -- Flags
     signal ship_on, wall_on, game_over, win : std_logic := '0';    
 
-    -- ROCKET CODE
-    -- width of the alien area (8 * 32)
-    constant ROCKET_WIDTH: integer := 32; -- 256 -> 8 ALIENS
-    constant ROCKET_HEIGHT: integer := 32;
+    -- ROCKET
+    constant ROCKET_WIDTH: natural := 32; -- 256 -> 8 ALIENS
+    constant ROCKET_HEIGHT: natural := 32;
+
+    signal rocket_x : integer := HD/2;
+    signal rocket_y : integer := VD - ROCKET_HEIGHT;
+
     signal rocket_on: std_logic := '0';
-    -- alien_address is made of row and column adresses
-    -- alien_addr <= (row_alien_address & col_alien_address);
-    signal rocket_addr: std_logic_vector(9 downto 0) := "0000000000";
-    signal row_rocket_address, col_rocket_address: std_logic_vector(4 downto 0) := "00000";
+
+    signal row_rocket_address: natural := 0;
+    signal col_rocket_address: natural := 0;
+
+
     -- 3rd level aliens are at the bottom (64px below master coord)
     constant OFFSET: integer := 64;
-    -- master chords (them would be an input)
-    signal rocket_master_coord_x: unsigned (9 downto 0) := to_unsigned((HD / 2) - ROCKET_WIDTH/2, 10); 
-    signal rocket_master_coord_y: unsigned (9 downto 0) := to_unsigned(VD-100-32,10);
     
     -- Enemy Ball
     constant EB_WIDTH: integer := 640; -- 256 -> 8 ALIENS
@@ -108,15 +109,16 @@ architecture behavioral of graph is
     signal rocket_fired : std_logic := '0';
 
     begin
-
-        rocket: entity work.rocket_rom(content) port map(
-            rocket_addr => rocket_addr,
-            data => rocket_rgb
-        );
-        
+       
         enemy_ball:entity work.enemy_ball_rom(content) port map(
             alien_addr => enemy_ball_addr,
             data => enemy_ball_rgb
+        );
+
+        rocket: entity work.Rom(Rocket) port map(
+            row => row_rocket_address,
+            col => col_rocket_address,
+            rgb => rocket_rgb
         );
 
         internal_clk_proc: process (px_clk, col, row) is
@@ -143,12 +145,7 @@ architecture behavioral of graph is
 
         game_proc: process(update_clk, row, col, up, down, left, right, mid)
 
-            -- variable current_frame : natural := 0;
-            variable hit_r, hit_l : std_logic := '0'; -- hit right, hit left
             variable wall_offset : integer := 0;
-            variable rocket_offset_x : unsigned (9 downto 0) := "0000000000";
-            variable rocket_offset_y : unsigned (9 downto 0) := "0000000000";
-            variable rocket_x_or_y : integer := 0; -- decide to move to x or to y
             variable enemy_ball_offset_x : unsigned (9 downto 0) := "0000000000";
             variable enemy_ball_offset_y : unsigned (9 downto 0) := "0000000000";
 
@@ -163,17 +160,18 @@ architecture behavioral of graph is
                 
 
                 -- if rocket is launched, move upwards
-                if rocket_fired = '1' then
-                    rocket_offset_y := rocket_offset_y - ROCKET_STEP;
+                -- if rocket_fired = '1' then
+                    rocket_y <= rocket_y - ROCKET_STEP;
+                -- end if;
 
-                    -- if rocket reaches top allow new rocket to be launched
-                    -- if rocket_master_coord_y + OFFSET + ROCKET_HEIGHT + rocket_offset_y >= VD then
-                    --     rocket_fired <= '0';
-                    -- end if;
-                end if;
+                -- if rocket reaches top allow new rocket to be launched
+                -- if rocket_y + ROCKET_HEIGHT/2 <= 0 then
+                --     rocket_fired <= '0';
+                -- end if;
                 
             end if;
 
+            -- Faster response for GUI
             if rising_edge(frame_clk) then
 
                 if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
@@ -189,10 +187,11 @@ architecture behavioral of graph is
                 -- Separated if so that it can be fired whilst moving the ship
                 if up = '1' then
 
-                    if rocket_fired = '0' then
-                        rocket_master_coord_x <= to_unsigned(ship_x, rocket_master_coord_x'length);
-                        rocket_fired <= '1';
-                    end if;
+                    -- if rocket_fired = '0' then
+                        rocket_x <= ship_x;
+                        rocket_y <= ship_y;
+                    --     rocket_fired <= '1';
+                    -- end if;
                     
                 end if;
 
@@ -222,22 +221,21 @@ architecture behavioral of graph is
                 game_over <= '1';
             end if;
 
-            if (rocket_master_coord_y + OFFSET + rocket_offset_y <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
+            if (rocket_y <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
                 win <= '1';
             end if;
 
             -- rocket enable boundaries
-            if (col >= rocket_master_coord_x + rocket_offset_x) and (col < rocket_master_coord_x + ROCKET_WIDTH + rocket_offset_x) 
-               and (row >= rocket_master_coord_y + OFFSET + rocket_offset_y) and (row < rocket_master_coord_y + OFFSET + ROCKET_HEIGHT + rocket_offset_y) then
+            if (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) 
+               and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
                 rocket_on <= '1';
             else
                 rocket_on <= '0';
             end if;
 
-            -- calculate address of px of rom
-            row_rocket_address <= std_logic_vector( pix_y(4 downto 0) - rocket_master_coord_y(4 downto 0) - rocket_offset_y(4 downto 0) ) ; 
-            col_rocket_address <= std_logic_vector( pix_x(4 downto 0) - rocket_master_coord_x(4 downto 0) - rocket_offset_x(4 downto 0) ) ;
-            rocket_addr <= row_rocket_address & col_rocket_address;
+            -- Compute px coordinate inside ROM
+            row_rocket_address <= row - (rocket_y - ROCKET_HEIGHT/2); 
+            col_rocket_address <= col - (rocket_x - ROCKET_WIDTH/2);
             
              -- ENEMY BALL enable boundaries
             if (col >= enemy_ball_master_coord_x + enemy_ball_offset_x) and (col < enemy_ball_master_coord_x + EB_WIDTH + enemy_ball_offset_x) 
