@@ -22,6 +22,9 @@ end graph;
 
 architecture behavioral of graph is
 
+    type status_type is (RUNNING, GAMEOVER, WIN);
+    signal status : status_type := RUNNING;
+
     -- Color constants definition
     constant RED : std_logic_vector(2 downto 0) := "100";
     constant GREEN : std_logic_vector(2 downto 0) := "010";
@@ -63,7 +66,7 @@ architecture behavioral of graph is
 
 
     -- Flags
-    signal ship_on, game_over, win : std_logic := '0';    
+    signal ship_on : std_logic := '0';    
 
     -- ROCKET
     constant ROCKET_WIDTH: natural := 32; -- 256 -> 8 ALIENS
@@ -180,8 +183,6 @@ architecture behavioral of graph is
             end if;
 
             ship_on  <= '0';
-            game_over <= '0';
-            win <= '0';
 
             -- Set flags to decide what to draw on screen
             -- activation boundaries for the ship
@@ -192,12 +193,12 @@ architecture behavioral of graph is
 
             -- game over if the enemies touch the top of the ship
             if (ship_y + SHIP_HEIGHT/2 <= enemy_ball_y - EB_HEIGHT/2) then -- likely need to change conditions
-                game_over <= '1';
+                status <= GAMEOVER;
             end if;
 
             -- will probably need to fix condition
             if (rocket_y <= enemy_ball_y) then
-                win <= '1';
+                status <= WIN;
             end if;
 
             -- rocket enable boundaries
@@ -229,9 +230,9 @@ architecture behavioral of graph is
                 graph_rgb <= rocket_rgb;
             elsif enemy_ball_on = '1' then
                 graph_rgb <= enemy_ball_rgb;
-            elsif game_over = '1' then
+            elsif status = GAMEOVER then
                 graph_rgb <= gameover_rgb;
-            elsif win = '1' then
+            elsif status = WIN then
                 graph_rgb <= win_rgb;
             else
                 graph_rgb <= BLACK; -- background
