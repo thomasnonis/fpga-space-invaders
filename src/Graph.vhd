@@ -140,7 +140,7 @@ architecture behavioral of graph is
 
         game_proc: process(update_clk, row, col, up, down, left, right, mid) begin
 
-            if rising_edge(update_clk) then
+            if rising_edge(update_clk) and status = RUNNING then
 
                 enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;                
 
@@ -159,25 +159,37 @@ architecture behavioral of graph is
             -- Faster response for GUI
             if rising_edge(frame_clk) then
 
-                if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
+                if down = '1' then
 
-                    ship_x <= ship_x - SHIP_STEP;
+                    enemy_ball_y <= EB_HEIGHT/2;
+                    ship_x <= HD/2;
+                    rocket_x <= ship_x;
+                    rocket_y <= ship_y;
+                    status <= RUNNING;
 
-                elsif right = '1' and ship_x + SHIP_WIDTH/2 < HD - 1 then
+                else
 
-                    ship_x <= ship_x + SHIP_STEP;
+                    if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
 
-                end if;
-                
-                -- Separated if so that it can be fired whilst moving the ship
-                if up = '1' then
+                        ship_x <= ship_x - SHIP_STEP;
 
-                    -- if rocket_fired = '0' then
-                        rocket_x <= ship_x;
-                        rocket_y <= ship_y;
-                    --     rocket_fired <= '1';
-                    -- end if;
+                    elsif right = '1' and ship_x + SHIP_WIDTH/2 < HD - 1 then
+
+                        ship_x <= ship_x + SHIP_STEP;
+
+                    end if;
                     
+                    -- Separated if so that it can be fired whilst moving the ship
+                    if up = '1' and status = RUNNING then
+
+                        -- if rocket_fired = '0' then
+                            rocket_x <= ship_x;
+                            rocket_y <= ship_y;
+                        --     rocket_fired <= '1';
+                        -- end if;
+                        
+                    end if;
+
                 end if;
 
             end if;
@@ -192,12 +204,11 @@ architecture behavioral of graph is
             end if;
 
             -- game over if the enemies touch the top of the ship
-            if (ship_y + SHIP_HEIGHT/2 <= enemy_ball_y - EB_HEIGHT/2) then -- likely need to change conditions
+            if (enemy_ball_y + EB_HEIGHT/2 > ship_y - SHIP_HEIGHT/2) then
                 status <= GAMEOVER;
             end if;
 
-            -- will probably need to fix condition
-            if (rocket_y <= enemy_ball_y) then
+            if (rocket_y - ROCKET_HEIGHT/2 <= enemy_ball_y + EB_HEIGHT/2) then
                 status <= WIN;
             end if;
 
