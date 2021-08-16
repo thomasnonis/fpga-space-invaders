@@ -40,15 +40,18 @@ architecture behavioral of graph is
     -- SIZE AND BOUNDARY OF THE OBJECTS --
 
     -- SHIP
-    constant SHIP_WIDTH : natural := 40;
-    constant SHIP_HEIGHT : natural := 40;
+    constant SHIP_WIDTH : natural := 32;
+    constant SHIP_HEIGHT : natural := 32;
 
     signal ship_x : integer := HD/2;
     signal ship_y : integer := VD - SHIP_HEIGHT;
+
+    signal row_ship_address: natural := 0;
+    signal col_ship_address: natural := 0;
     
 
     -- COLOR SIGNALS (used as constants for testing with simple shapes) --
-    signal ship_rgb : std_logic_vector(2 downto 0) := YELLOW;
+    signal ship_rgb : std_logic_vector(2 downto 0);
     signal ball_rgb : std_logic_vector(2 downto 0) := MAGENTA;
     signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
     signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
@@ -116,6 +119,12 @@ architecture behavioral of graph is
             rgb => rocket_rgb
         );
 
+        ship: entity work.Rom(Ship) port map(
+            row => row_ship_address,
+            col => col_ship_address,
+            rgb => ship_rgb
+        );
+
         internal_clk_proc: process (px_clk, col, row) is
 
             variable n : natural := 0;
@@ -167,29 +176,28 @@ architecture behavioral of graph is
                     rocket_y <= ship_y;
                     status <= RUNNING;
 
-                else
+                end if;
 
-                    if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
 
-                        ship_x <= ship_x - SHIP_STEP;
+                if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
 
-                    elsif right = '1' and ship_x + SHIP_WIDTH/2 < HD - 1 then
+                    ship_x <= ship_x - SHIP_STEP;
 
-                        ship_x <= ship_x + SHIP_STEP;
+                elsif right = '1' and ship_x + SHIP_WIDTH/2 < HD - 1 then
 
-                    end if;
+                    ship_x <= ship_x + SHIP_STEP;
+
+                end if;
+                
+                -- Separated if so that it can be fired whilst moving the ship
+                if up = '1' and status = RUNNING then
+
+                    -- if rocket_fired = '0' then
+                        rocket_x <= ship_x;
+                        rocket_y <= ship_y;
+                    --     rocket_fired <= '1';
+                    -- end if;
                     
-                    -- Separated if so that it can be fired whilst moving the ship
-                    if up = '1' and status = RUNNING then
-
-                        -- if rocket_fired = '0' then
-                            rocket_x <= ship_x;
-                            rocket_y <= ship_y;
-                        --     rocket_fired <= '1';
-                        -- end if;
-                        
-                    end if;
-
                 end if;
 
             end if;
@@ -202,6 +210,9 @@ architecture behavioral of graph is
             if (col >= ship_x - SHIP_WIDTH/2) and (col <= ship_x + SHIP_WIDTH/2) and (row >= ship_y - SHIP_HEIGHT/2) and (row <= ship_y + SHIP_HEIGHT/2) then
                 ship_on <= '1';
             end if;
+
+            row_ship_address <= row - (ship_y - SHIP_HEIGHT/2);
+            col_ship_address <= col - (ship_x - SHIP_WIDTH/2);
 
             -- game over if the enemies touch the top of the ship
             if (enemy_ball_y + EB_HEIGHT/2 > ship_y - SHIP_HEIGHT/2) then
@@ -235,11 +246,14 @@ architecture behavioral of graph is
             col_enemy_ball_address <= col - (enemy_ball_x - EB_WIDTH/2);
 
             -- priority encoder
-            if ship_on = '1' then 
+            if ship_on = '1' and ship_rgb /= "000" then 
+                -- poor man's alpha channel
                 graph_rgb <= ship_rgb;
-            elsif rocket_on = '1' then
+            elsif rocket_on = '1' and rocket_rgb /= "000" then
+                -- poor man's alpha channel
                 graph_rgb <= rocket_rgb;
-            elsif enemy_ball_on = '1' then
+            elsif enemy_ball_on = '1' and enemy_ball_rgb /= "000" then
+                -- poor man's alpha channel
                 graph_rgb <= enemy_ball_rgb;
             elsif status = GAMEOVER then
                 graph_rgb <= gameover_rgb;
