@@ -65,11 +65,9 @@ architecture behavioral of graph is
     constant SHIP_STEP: natural := 10; --30
     constant WALL_STEP: natural := 5; --30;
     constant ROCKET_STEP : natural := 16;
-    constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000";
+    constant ENEMY_BALL_STEP : natural := 16;
 
 
-    -- ??
-    signal pix_x, pix_y : unsigned(9 downto 0) := "0000000000";  
     -- Flags
     signal ship_on, wall_on, game_over, win : std_logic := '0';    
 
@@ -84,20 +82,19 @@ architecture behavioral of graph is
 
     signal row_rocket_address: natural := 0;
     signal col_rocket_address: natural := 0;
-
-
-    -- 3rd level aliens are at the bottom (64px below master coord)
-    constant OFFSET: integer := 64;
-    
+   
     -- Enemy Ball
-    constant EB_WIDTH: integer := 640; -- 256 -> 8 ALIENS
+    constant EB_WIDTH: integer := HD;
     constant EB_HEIGHT: integer := 32;
-    signal enemy_ball_addr: std_logic_vector(9 downto 0) := "0000000000";
-    signal row_enemy_ball_address, col_enemy_ball_address: std_logic_vector(4 downto 0) := "00000";
+
+    signal enemy_ball_x : integer := HD/2;
+    signal enemy_ball_y : integer := EB_HEIGHT/2;
+
+    signal row_enemy_ball_address: natural := 0;
+    signal col_enemy_ball_address: natural := 0;
+
     signal enemy_ball_on: std_logic := '0';
-    -- master chords (them would be an input)
-    signal enemy_ball_master_coord_x: unsigned (9 downto 0) := "0000000000"; 
-    signal enemy_ball_master_coord_y: unsigned (9 downto 0) := "0000000000";
+
 
     signal frame_counter : natural := 0;
 
@@ -110,9 +107,10 @@ architecture behavioral of graph is
 
     begin
        
-        enemy_ball:entity work.enemy_ball_rom(content) port map(
-            alien_addr => enemy_ball_addr,
-            data => enemy_ball_rgb
+        enemy_ball: entity work.Rom(EnemyBall) port map(
+            row => row_enemy_ball_address,
+            col => col_enemy_ball_address,
+            rgb => enemy_ball_rgb
         );
 
         rocket: entity work.Rom(Rocket) port map(
@@ -146,15 +144,13 @@ architecture behavioral of graph is
         game_proc: process(update_clk, row, col, up, down, left, right, mid)
 
             variable wall_offset : integer := 0;
-            variable enemy_ball_offset_x : unsigned (9 downto 0) := "0000000000";
-            variable enemy_ball_offset_y : unsigned (9 downto 0) := "0000000000";
 
         begin
 
             if rising_edge(update_clk) then
 
                 -- changing ship_offset by reading the hit flags. wall_offset change too.
-                enemy_ball_offset_y := enemy_ball_offset_y + ENEMY_BALL_STEP;
+                enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;
                 wall_offset := wall_offset + WALL_STEP;
 
                 
@@ -197,9 +193,6 @@ architecture behavioral of graph is
 
             end if;
 
-            pix_y <= to_unsigned(row, 10); 
-            pix_x <= to_unsigned(col, 10);
-
             ship_on  <= '0';
             wall_on <= '0';
             game_over <= '0';
@@ -217,17 +210,17 @@ architecture behavioral of graph is
             end if;
 
             -- game over if the wall touch the top of the ship
-            if (WALL_Y_B + wall_offset >= ship_y + SHIP_HEIGHT/2) or (ship_y + SHIP_HEIGHT/2 <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
+            if (WALL_Y_B + wall_offset >= ship_y + SHIP_HEIGHT/2) or (ship_y + SHIP_HEIGHT/2 <= enemy_ball_y - EB_HEIGHT/2) then -- likely need to change conditions
                 game_over <= '1';
             end if;
 
-            if (rocket_y <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
+            -- will probably need to fix condition
+            if (rocket_y <= enemy_ball_y) then
                 win <= '1';
             end if;
 
             -- rocket enable boundaries
-            if (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) 
-               and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
+            if (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
                 rocket_on <= '1';
             else
                 rocket_on <= '0';
@@ -238,18 +231,15 @@ architecture behavioral of graph is
             col_rocket_address <= col - (rocket_x - ROCKET_WIDTH/2);
             
              -- ENEMY BALL enable boundaries
-            if (col >= enemy_ball_master_coord_x + enemy_ball_offset_x) and (col < enemy_ball_master_coord_x + EB_WIDTH + enemy_ball_offset_x) 
-            and (row >= enemy_ball_master_coord_y + OFFSET + enemy_ball_offset_y) and (row < enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
+            if (col >= enemy_ball_x - EB_WIDTH/2) and (col < enemy_ball_x + EB_WIDTH/2) and (row >= enemy_ball_y - EB_HEIGHT/2) and (row < enemy_ball_y + EB_HEIGHT/2) then
                 enemy_ball_on <= '1';
             else
                 enemy_ball_on <= '0';
             end if;
 
-            -- calculate address of px of rom
-            row_enemy_ball_address <= std_logic_vector( pix_y(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_y(4 downto 0) ) ; --- rocket_master_coord_y(4 downto 0);
-            col_enemy_ball_address <= std_logic_vector( pix_x(4 downto 0) - enemy_ball_master_coord_y(4 downto 0) - enemy_ball_offset_x(4 downto 0) ) ; -- - rocket_master_coord_x(4 downto 0);
-            enemy_ball_addr <= row_enemy_ball_address & col_enemy_ball_address;
-
+            -- Compute px coordinate inside ROM
+            row_enemy_ball_address <= row - (enemy_ball_y - EB_HEIGHT/2); 
+            col_enemy_ball_address <= col - (enemy_ball_x - EB_WIDTH/2);
 
             -- priority encoder
             if ship_on = '1' then 
