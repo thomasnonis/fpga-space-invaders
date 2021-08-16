@@ -63,3 +63,11 @@ begin
 
 end behavioral;
 
+architecture bypass of Debouncer is
+
+begin
+
+	btn_out <= btn_in;
+
+	end bypass;
+

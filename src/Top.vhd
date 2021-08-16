@@ -13,7 +13,8 @@ entity Top is
         g : out std_logic_vector(3 downto 0);
         b : out std_logic_vector(3 downto 0);
         h_sync : out std_logic;
-        v_sync : out std_logic
+        v_sync : out std_logic;
+        led : out std_logic_vector(7 downto 0)
     );
 end Top;
 
@@ -44,6 +45,7 @@ begin
     
     image : entity work.Graph
         Port map(
+            px_clk => px_clk,
             display_enable => display_enable,
             row => row,
             col => col,
@@ -57,41 +59,43 @@ begin
             b => b
         );
 
-    up_db: entity work.Debouncer Port map (
+    up_db: entity work.Debouncer(bypass) Port map (
         clk => sys_clk,
         reset => '1',
         btn_in => btn_up,
         btn_out => up
     );
 
-    down_db: entity work.Debouncer Port map (
+    down_db: entity work.Debouncer(bypass) Port map (
         clk => sys_clk,
         reset => '1',
         btn_in => btn_down,
         btn_out => down
     );
 
-    left_db: entity work.Debouncer Port map (
+    left_db: entity work.Debouncer(bypass) Port map (
         clk => sys_clk,
         reset => '1',
         btn_in => btn_left,
         btn_out => left
     );
 
-    right_db: entity work.Debouncer Port map (
+    right_db: entity work.Debouncer(bypass) Port map (
         clk => sys_clk,
         reset => '1',
         btn_in => btn_right,
         btn_out => right
     );
 
-    mid_db: entity work.Debouncer Port map (
+    mid_db: entity work.Debouncer(bypass) Port map (
         clk => sys_clk,
         reset => '1',
         btn_in => btn_mid,
         btn_out => mid
     );
 
+    led <= up & down & left & right & mid & "000";
+    
     -- clk_sim: process begin
     --     px_clk <= not px_clk;
     --     wait for 20 ns;
