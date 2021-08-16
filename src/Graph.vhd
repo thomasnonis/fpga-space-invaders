@@ -9,6 +9,7 @@ entity graph is
         VD  : natural := 480   -- vertical display
     );
     port (
+        px_clk : in std_logic;
         display_enable  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
         row       :  in   natural;    -- row pixel coordinate
         col       :  in   natural;    -- column pixel coordinate
@@ -31,7 +32,7 @@ architecture behavioral of graph is
     constant BLACK : std_logic_vector(2 downto 0) := "000";
     constant WHITE : std_logic_vector(2 downto 0) := "111";
 
-    constant every_n_frames : natural := 60;
+    constant every_n_frames : natural := 180;
 
     -- SIZE AND BOUNDARY OF THE OBJECTS --
 
@@ -53,7 +54,7 @@ architecture behavioral of graph is
     
 
     -- COLOR SIGNALS (used as constants for testing with simple shapes) --
-    signal ship_rgb : std_logic_vector(2 downto 0) := GREEN;
+    signal ship_rgb : std_logic_vector(2 downto 0) := YELLOW;
     signal wall_rgb : std_logic_vector(2 downto 0) := BLUE;
     signal ball_rgb : std_logic_vector(2 downto 0) := MAGENTA;
     signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
@@ -69,7 +70,7 @@ architecture behavioral of graph is
     constant SHIP_STEP: natural := 10; --30
     constant WALL_STEP: natural := 5; --30;
     constant ROCKET_STEP : unsigned(4 downto 0) := "10000"; --32
-    constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000"; --32
+    constant ENEMY_BALL_STEP : unsigned(4 downto 0) := "10000";
 
 
     -- ??
@@ -102,6 +103,15 @@ architecture behavioral of graph is
     signal enemy_ball_master_coord_x: unsigned (9 downto 0) := "0000000000"; 
     signal enemy_ball_master_coord_y: unsigned (9 downto 0) := "0000000000";
 
+    signal frame_counter : natural := 0;
+
+    -- INTERNAL CLOCKS
+    signal update_clk : std_logic := '0';
+    signal frame_clk : std_logic := '0';
+
+    -- FLAGS
+    signal rocket_fired : std_logic := '0';
+
     begin
 
         rocket: entity work.rocket_rom(content) port map(
@@ -114,9 +124,31 @@ architecture behavioral of graph is
             data => enemy_ball_rgb
         );
 
-        process(row, col, up, down, left, right, mid)
+        internal_clk_proc: process (px_clk, col, row) is
 
-            variable current_frame : natural := 0;
+            variable n : natural := 0;
+
+        begin
+
+            if rising_edge(px_clk) then
+
+                if col = 0 and row = 0 then
+                    frame_clk <= not frame_clk;
+                    n := n + 1;
+                end if;
+
+                if n > 15 then
+                    n := 0;
+                    update_clk <= not update_clk;
+                end if;
+
+            end if;
+
+        end process;
+
+        game_proc: process(update_clk, row, col, up, down, left, right, mid)
+
+            -- variable current_frame : natural := 0;
             variable ship_offset : integer := 0;
             variable hit_r, hit_l : std_logic := '0'; -- hit right, hit left
             variable wall_offset : integer := 0;
@@ -128,14 +160,61 @@ architecture behavioral of graph is
 
         begin
 
-            if row = 0 and col = 0 then
-                current_frame := current_frame + 1;
+            if rising_edge(update_clk) then
 
-                if current_frame > every_n_frames then
-                    current_frame := 0;
+                -- changing ship_offset by reading the hit flags. wall_offset change too.
+                enemy_ball_offset_y := enemy_ball_offset_y + ENEMY_BALL_STEP;
+                wall_offset := wall_offset + WALL_STEP;
+
+                
+
+                -- if rocket is launched, move upwards
+                if rocket_fired = '1' then
+                    rocket_offset_y := rocket_offset_y - ROCKET_STEP;
+
+                    -- if rocket reaches top allow new rocket to be launched
+                    -- if rocket_master_coord_y + OFFSET + ROCKET_HEIGHT + rocket_offset_y >= VD then
+                    --     rocket_fired <= '0';
+                    -- end if;
                 end if;
+                
             end if;
-            
+
+            if rising_edge(frame_clk) then
+                -- check if the ship hit the right or left spot
+                -- if SHIP_X_R + ship_offset + SHIP_STEP >= HD - 1 then 
+                --     hit_l := '0';
+                --     hit_r := '1';
+                -- elsif SHIP_X_L + ship_offset - SHIP_STEP <= 0 then
+                --     hit_l := '1';
+                --     hit_r := '0';
+                -- else
+                --     hit_l := '0';
+                --     hit_r := '0';
+                -- end if;
+
+                if left = '1' and SHIP_X_L + ship_offset - SHIP_STEP > 0 then
+
+                    ship_offset := ship_offset - SHIP_STEP;
+
+                elsif right = '1' and SHIP_X_R + ship_offset + SHIP_STEP < HD - 1 then
+
+                    ship_offset := ship_offset + SHIP_STEP;
+
+                end if;
+                
+                -- Separated if so that it can be fired whilst moving the ship
+                if up = '1' then
+
+                    if rocket_fired = '0' then
+                        rocket_master_coord_x <= to_unsigned(SHIP_X_L + ship_offset + SHIP_WIDTH/2, rocket_master_coord_x'length);
+                        rocket_fired <= '1';
+                    end if;
+                    
+                end if;
+
+            end if;
+
             pix_y <= to_unsigned(row, 10); 
             pix_x <= to_unsigned(col, 10);
 
@@ -207,38 +286,9 @@ architecture behavioral of graph is
                 graph_rgb <= BLACK; -- background
             end if;
 
-            if row = VD - 1 and col = HD - 1 then 
-            -- frame update
-
-                -- check if the ship hit the right or left spot
-                if SHIP_X_R + ship_offset + SHIP_STEP >= HD - 1 then 
-                    hit_l := '0';
-                    hit_r := '1';
-                elsif SHIP_X_L + ship_offset - SHIP_STEP <= 0 then
-                    hit_r := '0';
-                    hit_l := '1';
-                end if;
-
-                -- changing ship_offset by reading the hit flags. wall_offset change too.
-                enemy_ball_offset_y := enemy_ball_offset_y + ROCKET_STEP;
-                wall_offset := wall_offset + WALL_STEP;
-                rocket_offset_y := rocket_offset_y - ROCKET_STEP - ROCKET_STEP;
-
-                -- if hit_r = '1' then
-                --     ship_offset := ship_offset - SHIP_STEP;
-                -- elsif hit_l = '1' then
-                --     ship_offset := ship_offset + SHIP_STEP;
-                -- else
-                --     ship_offset := ship_offset + SHIP_STEP;
-                -- end if;
-
-                if left = '1' then
-                    ship_offset := ship_offset - SHIP_STEP;
-                elsif right = '1' then
-                    ship_offset := ship_offset + SHIP_STEP;
-                end if;
-
-            end if;
+            -- if left = '1' then
+            --     graph_rgb <= WHITE;
+            -- end if;
 
         end process;
 
