@@ -22,10 +22,7 @@ end graph;
 
 architecture behavioral of graph is
 
-    type status_type is (RUNNING, GAMEOVER, WIN);
-    signal status : status_type := RUNNING;
-
-    -- Color constants definition
+    -- COLOR CONSTANTS
     constant RED : std_logic_vector(2 downto 0) := "100";
     constant GREEN : std_logic_vector(2 downto 0) := "010";
     constant BLUE : std_logic_vector(2 downto 0) := "001";
@@ -35,75 +32,58 @@ architecture behavioral of graph is
     constant BLACK : std_logic_vector(2 downto 0) := "000";
     constant WHITE : std_logic_vector(2 downto 0) := "111";
 
-    constant every_n_frames : natural := 180;
+    -- GAME STATUS
+    type status_type is (RUNNING, GAMEOVER, WIN);
 
-    -- SIZE AND BOUNDARY OF THE OBJECTS --
+    signal status : status_type := RUNNING;
+    signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
+    signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
 
     -- SHIP
     constant SHIP_WIDTH : natural := 32;
     constant SHIP_HEIGHT : natural := 32;
+    constant SHIP_STEP: natural := 10; --30
 
     signal ship_x : integer := HD/2;
     signal ship_y : integer := VD - SHIP_HEIGHT;
-
     signal row_ship_address: natural := 0;
     signal col_ship_address: natural := 0;
-    
-
-    -- COLOR SIGNALS (used as constants for testing with simple shapes) --
-    signal ship_rgb : std_logic_vector(2 downto 0);
-    signal ball_rgb : std_logic_vector(2 downto 0) := MAGENTA;
-    signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
-    signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
-    signal rocket_rgb : std_logic_vector(2 downto 0);
-    signal enemy_ball_rgb : std_logic_vector(2 downto 0);
-    -- main signal for px color
-    signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
-
-
-    -- STEPS --
-    -- Step for each movement of ship
-    constant SHIP_STEP: natural := 10; --30
-    constant ROCKET_STEP : natural := 16;
-    constant ENEMY_BALL_STEP : natural := 16;
-
-
-    -- Flags
-    signal ship_on : std_logic := '0';    
+    signal ship_on : std_logic := '0';  
+    signal ship_rgb : std_logic_vector(2 downto 0);   
 
     -- ROCKET
-    constant ROCKET_WIDTH: natural := 32; -- 256 -> 8 ALIENS
+    constant ROCKET_WIDTH: natural := 32;
     constant ROCKET_HEIGHT: natural := 32;
+    constant ROCKET_STEP : natural := 16;
 
     signal rocket_x : integer := HD/2;
     signal rocket_y : integer := VD - ROCKET_HEIGHT;
-
     signal rocket_on: std_logic := '0';
-
+    signal rocket_rgb : std_logic_vector(2 downto 0);
     signal row_rocket_address: natural := 0;
     signal col_rocket_address: natural := 0;
    
-    -- Enemy Ball
+    -- ENEMY BALL
     constant EB_WIDTH: integer := HD;
     constant EB_HEIGHT: integer := 32;
+    constant ENEMY_BALL_STEP : natural := 16;
 
     signal enemy_ball_x : integer := HD/2;
     signal enemy_ball_y : integer := EB_HEIGHT/2;
-
     signal row_enemy_ball_address: natural := 0;
     signal col_enemy_ball_address: natural := 0;
-
     signal enemy_ball_on: std_logic := '0';
-
-
-    signal frame_counter : natural := 0;
+    signal enemy_ball_rgb : std_logic_vector(2 downto 0);
 
     -- INTERNAL CLOCKS
     signal update_clk : std_logic := '0';
     signal frame_clk : std_logic := '0';
-
+    
     -- FLAGS
     signal rocket_fired : std_logic := '0';
+    
+    -- OTHER
+    signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
 
     begin
        
@@ -202,50 +182,50 @@ architecture behavioral of graph is
 
             end if;
 
-            ship_on  <= '0';
-
-            -- Set flags to decide what to draw on screen
-            -- activation boundaries for the ship
-            -- One boundary should probably be <, not <=
+            -- Set ship canvas
             if (col >= ship_x - SHIP_WIDTH/2) and (col <= ship_x + SHIP_WIDTH/2) and (row >= ship_y - SHIP_HEIGHT/2) and (row <= ship_y + SHIP_HEIGHT/2) then
                 ship_on <= '1';
+            else
+                ship_on <= '0';
             end if;
 
-            row_ship_address <= row - (ship_y - SHIP_HEIGHT/2);
-            col_ship_address <= col - (ship_x - SHIP_WIDTH/2);
-
-            -- game over if the enemies touch the top of the ship
-            if (enemy_ball_y + EB_HEIGHT/2 > ship_y - SHIP_HEIGHT/2) then
-                status <= GAMEOVER;
-            end if;
-
-            if (rocket_y - ROCKET_HEIGHT/2 <= enemy_ball_y + EB_HEIGHT/2) then
-                status <= WIN;
-            end if;
-
-            -- rocket enable boundaries
+            -- Set rocket canvas
             if (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
                 rocket_on <= '1';
             else
                 rocket_on <= '0';
             end if;
-
-            -- Compute px coordinate inside ROM
-            row_rocket_address <= row - (rocket_y - ROCKET_HEIGHT/2); 
-            col_rocket_address <= col - (rocket_x - ROCKET_WIDTH/2);
             
-             -- ENEMY BALL enable boundaries
+             -- Set enemy ball canvas
             if (col >= enemy_ball_x - EB_WIDTH/2) and (col < enemy_ball_x + EB_WIDTH/2) and (row >= enemy_ball_y - EB_HEIGHT/2) and (row < enemy_ball_y + EB_HEIGHT/2) then
                 enemy_ball_on <= '1';
             else
                 enemy_ball_on <= '0';
             end if;
 
-            -- Compute px coordinate inside ROM
+            -- Compute px coordinate of ship inside ROM
+            row_ship_address <= row - (ship_y - SHIP_HEIGHT/2);
+            col_ship_address <= col - (ship_x - SHIP_WIDTH/2);
+
+            -- Compute px coordinate of rocket inside ROM
+            row_rocket_address <= row - (rocket_y - ROCKET_HEIGHT/2); 
+            col_rocket_address <= col - (rocket_x - ROCKET_WIDTH/2);
+
+            -- Compute px coordinate of enemy ball inside ROM
             row_enemy_ball_address <= row - (enemy_ball_y - EB_HEIGHT/2); 
             col_enemy_ball_address <= col - (enemy_ball_x - EB_WIDTH/2);
 
-            -- priority encoder
+            -- Gameover if the enemies touch the top of the ship
+            if (enemy_ball_y + EB_HEIGHT/2 > ship_y - SHIP_HEIGHT/2) then
+                status <= GAMEOVER;
+            end if;
+
+            -- Win if rocket touches enemies
+            if (rocket_y - ROCKET_HEIGHT/2 <= enemy_ball_y + EB_HEIGHT/2) then
+                status <= WIN;
+            end if;
+
+            -- Set z axis order
             if ship_on = '1' and ship_rgb /= "000" then 
                 -- poor man's alpha channel
                 graph_rgb <= ship_rgb;
@@ -260,12 +240,9 @@ architecture behavioral of graph is
             elsif status = WIN then
                 graph_rgb <= win_rgb;
             else
-                graph_rgb <= BLACK; -- background
+                -- background
+                graph_rgb <= BLACK;
             end if;
-
-            -- if left = '1' then
-            --     graph_rgb <= WHITE;
-            -- end if;
 
         end process;
 
