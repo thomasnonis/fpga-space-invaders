@@ -39,14 +39,9 @@ architecture behavioral of graph is
     -- SHIP
     constant SHIP_WIDTH : natural := 40;
     constant SHIP_HEIGHT : natural := 40;
-    -- Left boundary of ship intialized at center - half width
-    constant SHIP_X_L :  natural := HD/2 - SHIP_WIDTH/2;
-    -- Right boundary of ship intialized at center + half width
-    constant SHIP_X_R :  natural := HD/2 + SHIP_WIDTH/2; 
-    -- Bottom boundary of ship initialized at bottom of screen - 20
-    constant SHIP_Y_B: integer := VD - 20;  
-    -- Top boundary of ship initialized at desired height with respect to bottom
-    constant SHIP_Y_T: integer := SHIP_Y_B - SHIP_HEIGHT;
+
+    signal ship_x : integer := HD/2;
+    signal ship_y : integer := VD - SHIP_HEIGHT;
  
     -- Wall of aliens
     constant WALL_Y_T: natural := 0; 
@@ -149,7 +144,6 @@ architecture behavioral of graph is
         game_proc: process(update_clk, row, col, up, down, left, right, mid)
 
             -- variable current_frame : natural := 0;
-            variable ship_offset : integer := 0;
             variable hit_r, hit_l : std_logic := '0'; -- hit right, hit left
             variable wall_offset : integer := 0;
             variable rocket_offset_x : unsigned (9 downto 0) := "0000000000";
@@ -181,25 +175,14 @@ architecture behavioral of graph is
             end if;
 
             if rising_edge(frame_clk) then
-                -- check if the ship hit the right or left spot
-                -- if SHIP_X_R + ship_offset + SHIP_STEP >= HD - 1 then 
-                --     hit_l := '0';
-                --     hit_r := '1';
-                -- elsif SHIP_X_L + ship_offset - SHIP_STEP <= 0 then
-                --     hit_l := '1';
-                --     hit_r := '0';
-                -- else
-                --     hit_l := '0';
-                --     hit_r := '0';
-                -- end if;
 
-                if left = '1' and SHIP_X_L + ship_offset - SHIP_STEP > 0 then
+                if left = '1' and ship_x - SHIP_WIDTH/2 > 0 then
 
-                    ship_offset := ship_offset - SHIP_STEP;
+                    ship_x <= ship_x - SHIP_STEP;
 
-                elsif right = '1' and SHIP_X_R + ship_offset + SHIP_STEP < HD - 1 then
+                elsif right = '1' and ship_x + SHIP_WIDTH/2 < HD - 1 then
 
-                    ship_offset := ship_offset + SHIP_STEP;
+                    ship_x <= ship_x + SHIP_STEP;
 
                 end if;
                 
@@ -207,7 +190,7 @@ architecture behavioral of graph is
                 if up = '1' then
 
                     if rocket_fired = '0' then
-                        rocket_master_coord_x <= to_unsigned(SHIP_X_L + ship_offset + SHIP_WIDTH/2, rocket_master_coord_x'length);
+                        rocket_master_coord_x <= to_unsigned(ship_x, rocket_master_coord_x'length);
                         rocket_fired <= '1';
                     end if;
                     
@@ -225,7 +208,8 @@ architecture behavioral of graph is
 
             -- Set flags to decide what to draw on screen
             -- activation boundaries for the ship
-            if (col >= SHIP_X_L + ship_offset) and (col <= SHIP_X_R + ship_offset) and (SHIP_Y_T <= row) and (row <= SHIP_Y_B) then
+            -- One boundary should probably be <, not <=
+            if (col >= ship_x - SHIP_WIDTH/2) and (col <= ship_x + SHIP_WIDTH/2) and (row >= ship_y - SHIP_HEIGHT/2) and (row <= ship_y + SHIP_HEIGHT/2) then
                 ship_on <= '1';
             end if; 
                     
@@ -234,7 +218,7 @@ architecture behavioral of graph is
             end if;
 
             -- game over if the wall touch the top of the ship
-            if (WALL_Y_B + wall_offset >= SHIP_Y_T) or (SHIP_Y_T <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
+            if (WALL_Y_B + wall_offset >= ship_y + SHIP_HEIGHT/2) or (ship_y + SHIP_HEIGHT/2 <= enemy_ball_master_coord_y + OFFSET + EB_HEIGHT + enemy_ball_offset_y) then
                 game_over <= '1';
             end if;
 
