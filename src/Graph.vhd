@@ -42,15 +42,10 @@ architecture behavioral of graph is
 
     signal ship_x : integer := HD/2;
     signal ship_y : integer := VD - SHIP_HEIGHT;
- 
-    -- Wall of aliens
-    constant WALL_Y_T: natural := 0; 
-    constant WALL_Y_B: natural := 50;
     
 
     -- COLOR SIGNALS (used as constants for testing with simple shapes) --
     signal ship_rgb : std_logic_vector(2 downto 0) := YELLOW;
-    signal wall_rgb : std_logic_vector(2 downto 0) := BLUE;
     signal ball_rgb : std_logic_vector(2 downto 0) := MAGENTA;
     signal gameover_rgb : std_logic_vector(2 downto 0) := RED;
     signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
@@ -63,13 +58,12 @@ architecture behavioral of graph is
     -- STEPS --
     -- Step for each movement of ship
     constant SHIP_STEP: natural := 10; --30
-    constant WALL_STEP: natural := 5; --30;
     constant ROCKET_STEP : natural := 16;
     constant ENEMY_BALL_STEP : natural := 16;
 
 
     -- Flags
-    signal ship_on, wall_on, game_over, win : std_logic := '0';    
+    signal ship_on, game_over, win : std_logic := '0';    
 
     -- ROCKET
     constant ROCKET_WIDTH: natural := 32; -- 256 -> 8 ALIENS
@@ -141,19 +135,11 @@ architecture behavioral of graph is
 
         end process;
 
-        game_proc: process(update_clk, row, col, up, down, left, right, mid)
-
-            variable wall_offset : integer := 0;
-
-        begin
+        game_proc: process(update_clk, row, col, up, down, left, right, mid) begin
 
             if rising_edge(update_clk) then
 
-                -- changing ship_offset by reading the hit flags. wall_offset change too.
-                enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;
-                wall_offset := wall_offset + WALL_STEP;
-
-                
+                enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;                
 
                 -- if rocket is launched, move upwards
                 -- if rocket_fired = '1' then
@@ -194,7 +180,6 @@ architecture behavioral of graph is
             end if;
 
             ship_on  <= '0';
-            wall_on <= '0';
             game_over <= '0';
             win <= '0';
 
@@ -203,14 +188,10 @@ architecture behavioral of graph is
             -- One boundary should probably be <, not <=
             if (col >= ship_x - SHIP_WIDTH/2) and (col <= ship_x + SHIP_WIDTH/2) and (row >= ship_y - SHIP_HEIGHT/2) and (row <= ship_y + SHIP_HEIGHT/2) then
                 ship_on <= '1';
-            end if; 
-                    
-            if (row >= WALL_Y_T + wall_offset) and (row <= WALL_Y_B + wall_offset) then
-                wall_on <= '1';
             end if;
 
-            -- game over if the wall touch the top of the ship
-            if (WALL_Y_B + wall_offset >= ship_y + SHIP_HEIGHT/2) or (ship_y + SHIP_HEIGHT/2 <= enemy_ball_y - EB_HEIGHT/2) then -- likely need to change conditions
+            -- game over if the enemies touch the top of the ship
+            if (ship_y + SHIP_HEIGHT/2 <= enemy_ball_y - EB_HEIGHT/2) then -- likely need to change conditions
                 game_over <= '1';
             end if;
 
@@ -244,8 +225,6 @@ architecture behavioral of graph is
             -- priority encoder
             if ship_on = '1' then 
                 graph_rgb <= ship_rgb;
-            elsif wall_on = '1' then
-                graph_rgb <= wall_rgb;
             elsif rocket_on = '1' then
                 graph_rgb <= rocket_rgb;
             elsif enemy_ball_on = '1' then
