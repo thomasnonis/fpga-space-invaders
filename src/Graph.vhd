@@ -80,7 +80,9 @@ architecture behavioral of graph is
     signal frame_clk : std_logic := '0';
     
     -- FLAGS
-    signal rocket_fired : std_logic := '0';
+    -- signal rocket_fired : std_logic := '0';
+    -- signal schedule_fire : std_logic := '0';
+    -- signal schedule_unfire : std_logic := '0';
     
     -- OTHER
     signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
@@ -127,23 +129,13 @@ architecture behavioral of graph is
 
         end process;
 
-        game_proc: process(update_clk, row, col, up, down, left, right, mid) begin
 
-            if rising_edge(update_clk) and status = RUNNING then
 
-                enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;                
+        game_proc: process(update_clk, row, col, up, down, left, right, mid)
+        
+            variable rocket_fired : std_logic := '0';
 
-                -- if rocket is launched, move upwards
-                -- if rocket_fired = '1' then
-                    rocket_y <= rocket_y - ROCKET_STEP;
-                -- end if;
-
-                -- if rocket reaches top allow new rocket to be launched
-                -- if rocket_y + ROCKET_HEIGHT/2 <= 0 then
-                --     rocket_fired <= '0';
-                -- end if;
-                
-            end if;
+        begin
 
             -- Faster response for GUI
             if rising_edge(frame_clk) then
@@ -155,6 +147,9 @@ architecture behavioral of graph is
                     rocket_x <= ship_x;
                     rocket_y <= ship_y;
                     status <= RUNNING;
+                    if rocket_fired = '1' then
+                        rocket_fired := '0';
+                    end if;
 
                 end if;
 
@@ -172,15 +167,31 @@ architecture behavioral of graph is
                 -- Separated if so that it can be fired whilst moving the ship
                 if up = '1' and status = RUNNING then
 
-                    -- if rocket_fired = '0' then
+                    if rocket_fired = '0' then
                         rocket_x <= ship_x;
                         rocket_y <= ship_y;
-                    --     rocket_fired <= '1';
-                    -- end if;
+                        rocket_fired := '1';
+                    end if;
                     
                 end if;
 
             end if;
+
+            if rising_edge(update_clk) and status = RUNNING then
+
+                enemy_ball_y <= enemy_ball_y + ENEMY_BALL_STEP;                
+
+                -- if rocket is launched, move upwards
+                if rocket_fired = '1' then
+                    rocket_y <= rocket_y - ROCKET_STEP;
+
+                    -- if rocket reaches top allow new rocket to be launched
+                    if rocket_y + ROCKET_HEIGHT/2 <= 0 then
+                        rocket_fired := '0';
+                    end if;
+                end if;
+                
+            end if;   
 
             -- Set ship canvas
             if (col >= ship_x - SHIP_WIDTH/2) and (col <= ship_x + SHIP_WIDTH/2) and (row >= ship_y - SHIP_HEIGHT/2) and (row <= ship_y + SHIP_HEIGHT/2) then
@@ -190,7 +201,7 @@ architecture behavioral of graph is
             end if;
 
             -- Set rocket canvas
-            if (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
+            if rocket_fired = '1' and (col >= rocket_x - ROCKET_WIDTH/2) and (col < rocket_x + ROCKET_WIDTH/2) and (row >= rocket_y - ROCKET_HEIGHT/2) and (row < rocket_y + ROCKET_HEIGHT/2) then
                 rocket_on <= '1';
             else
                 rocket_on <= '0';
@@ -221,7 +232,7 @@ architecture behavioral of graph is
             end if;
 
             -- Win if rocket touches enemies
-            if (rocket_y - ROCKET_HEIGHT/2 <= enemy_ball_y + EB_HEIGHT/2) then
+            if (rocket_y <= enemy_ball_y) then
                 status <= WIN;
             end if;
 
