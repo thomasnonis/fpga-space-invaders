@@ -78,8 +78,12 @@ architecture behavioral of graph is
     -- INTERNAL CLOCKS
     signal update_clk : std_logic := '0';
     signal frame_clk : std_logic := '0';
-<<<<<<< HEAD
->>>>>>> 9ce4ab49286a9ccfe40b8c919949bc39685dff3a
+    
+    -- FLAGS
+    -- signal rocket_fired : std_logic := '0';
+    -- signal schedule_fire : std_logic := '0';
+    -- signal schedule_unfire : std_logic := '0';
+    
     -- OTHER
     signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
 
