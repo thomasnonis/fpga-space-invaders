@@ -79,11 +79,6 @@ architecture behavioral of graph is
     signal update_clk : std_logic := '0';
     signal frame_clk : std_logic := '0';
     
-    -- FLAGS
-    -- signal rocket_fired : std_logic := '0';
-    -- signal schedule_fire : std_logic := '0';
-    -- signal schedule_unfire : std_logic := '0';
-    
     -- OTHER
     signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
 
