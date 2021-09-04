@@ -26,7 +26,6 @@ architecture Behavioral of Top is
     signal display_enable : std_logic; 
     signal col : unsigned(9 downto 0);
     signal row : unsigned(9 downto 0);
-    signal up, down, left, right, mid : std_logic;
 
 begin
 
@@ -50,57 +49,14 @@ begin
             display_enable => display_enable,
             row => row,
             col => col,
-            up => up,
-            down => down,
-            left => left,
-            right => right,
-            mid => mid,
+            up => btn_up,
+            down => btn_down,
+            left => btn_left,
+            right => btn_right,
+            mid => btn_mid,
             r => r,
             g => g,
             b => b
         );
-
-    -- TODO change sys_clk to px_clk
-    up_db: entity work.Debouncer(bypass) Port map ( -- Why bypass instead of behavioral?
-        clk => sys_clk,
-        reset => '1',
-        btn_in => btn_up,
-        btn_out => up
-    );
-
-    down_db: entity work.Debouncer(bypass) Port map (
-        clk => sys_clk,
-        reset => '1',
-        btn_in => btn_down,
-        btn_out => down
-    );
-
-    left_db: entity work.Debouncer(bypass) Port map (
-        clk => sys_clk,
-        reset => '1',
-        btn_in => btn_left,
-        btn_out => left
-    );
-
-    right_db: entity work.Debouncer(bypass) Port map (
-        clk => sys_clk,
-        reset => '1',
-        btn_in => btn_right,
-        btn_out => right
-    );
-
-    mid_db: entity work.Debouncer(bypass) Port map (
-        clk => sys_clk,
-        reset => '1',
-        btn_in => btn_mid,
-        btn_out => mid
-    );
-
-    led <= up & down & left & right & mid & "000";
-    
-    -- clk_sim: process begin
-    --     px_clk <= not px_clk;
-    --     wait for 20 ns;
-    -- end process;
 
 end Behavioral;
