@@ -175,8 +175,8 @@ architecture behavioral of graph is
                 
                 -- Set enemy canvas
                 if (((col < to_unsigned(32*10, 10)) or (col >= HD-to_unsigned(32*6, 10))) and (row >= enemy_y - EB_HEIGHT/2) and (row < enemy_y + EB_HEIGHT/2))
-                    or (((col >= 32*7) and (col < to_unsigned(32*7 + 32*5, 10))) and (row >= enemy_y - to_unsigned(160, 10) - EB_HEIGHT/2) and (row < enemy_y - to_unsigned(160, 10) + EB_HEIGHT/2))
-                    or ((((col > to_unsigned(32*2, 10)) and (col <= to_unsigned(32*5, 10))) or (col > HD-to_unsigned(32*8, 10) and col <= HD-(32*1))) and (row >= enemy_y - to_unsigned(160+32*3, 10) - EB_HEIGHT/2) and (row < enemy_y - to_unsigned(160+32*3, 10) + EB_HEIGHT/2)) then
+                    or (((col >= 32*7) and (col < to_unsigned(32*7 + 32*5, 10))) and (row >= enemy_y - to_unsigned(32*5, 10) - EB_HEIGHT/2) and (row < enemy_y - to_unsigned(32*5, 10) + EB_HEIGHT/2))
+                    or ((((col > to_unsigned(32*2, 10)) and (col <= to_unsigned(32*5, 10))) or (col > HD-to_unsigned(32*8, 10) and col <= HD-(32*1))) and (row >= enemy_y - to_unsigned(32*5+32*3, 10) - EB_HEIGHT/2) and (row < enemy_y - to_unsigned(32*5+32*3, 10) + EB_HEIGHT/2)) then
                     enemy_on <= '1';
                 else
                     enemy_on <= '0';
@@ -192,6 +192,8 @@ architecture behavioral of graph is
 
                 if ship_on = '1' and enemy_on = '1' then
                     status <= GAMEOVER;
+                elsif enemy_y > to_unsigned(32*5+32*3, 10) + EB_HEIGHT/2 + VD then
+                    status <= WIN;
                 end if;
 
                 -- Set z axis order
