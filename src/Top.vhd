@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all; 
 
 entity Top is
     Port (
@@ -23,13 +24,13 @@ architecture Behavioral of Top is
     signal reset : std_logic := '1';
     signal px_clk : std_logic := '1';
     signal display_enable : std_logic; 
-    signal col : natural;
-    signal row : natural;
+    signal col : unsigned(9 downto 0);
+    signal row : unsigned(9 downto 0);
     signal up, down, left, right, mid : std_logic;
 
 begin
 
-    clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk);
+    clk_gen : entity work.clk_wiz_0 Port map (sys_clk => sys_clk, px_clk => px_clk); -- 100 MHz -> 25 MHz
 
     VGA_Controller : entity work.VGA_controller
         Port map (
@@ -38,8 +39,8 @@ begin
             h_sync => h_sync,
             v_sync => v_sync,
             display_enable => display_enable,
-            col => col,
-            row => row
+            col => col, 
+            row => row  
         );
 
     
@@ -59,7 +60,8 @@ begin
             b => b
         );
 
-    up_db: entity work.Debouncer(bypass) Port map (
+    -- TODO change sys_clk to px_clk
+    up_db: entity work.Debouncer(bypass) Port map ( -- Why bypass instead of behavioral?
         clk => sys_clk,
         reset => '1',
         btn_in => btn_up,

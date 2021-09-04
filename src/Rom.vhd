@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 entity Rom is
     port(
-        row, col: in natural;
+        row, col: in unsigned(4 downto 0); -- : in natural;
         rgb: out std_logic_vector(2 downto 0) -- rgb value
     );
 end Rom;
@@ -52,7 +52,7 @@ architecture Rocket of Rom is
 
 begin
     
-    rgb <= content(row)(col);
+    rgb <= content(to_integer(row))(to_integer(col));
 
 end Rocket;
 
@@ -99,7 +99,7 @@ architecture EnemyBall of Rom is
 
 begin
     
-    rgb <= content(row)(col);
+    rgb <= content(to_integer(row))(to_integer(col));
 
 end EnemyBall;
 
@@ -146,6 +146,6 @@ architecture Ship of Rom is
 
 begin
     
-    rgb <= content(row)(col);
+    rgb <= content(to_integer(row))(to_integer(col));
 
 end Ship;

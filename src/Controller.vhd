@@ -1,9 +1,3 @@
-----------------------------------------------------------------------------------
--- Author: Lisa Santarossa @unitn
---
---VGA Controller which is always the same for a given VGA mode
-----------------------------------------------------------------------------------
-
 library ieee;
 use ieee.std_logic_1164.all; 
 use ieee.numeric_std.all; 
@@ -53,13 +47,13 @@ entity VGA_controller is
         VBP : natural := 33     -- v_sync back porch 
     );
     port(
-        px_clk    : in      std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
-        reset     : in      std_logic;          -- active low asycnchronous reset
-        h_sync    : out     std_logic := '0';   -- horiztonal sync pulse
-        v_sync    : out     std_logic := '0';   -- vertical sync pulse
+        px_clk          : in      std_logic;          -- pixel clock at frequency of VGA mode being used : 25.175 MHz 
+        reset           : in      std_logic;          -- active low asycnchronous reset
+        h_sync          : out     std_logic := '0';   -- horiztonal sync pulse
+        v_sync          : out     std_logic := '0';   -- vertical sync pulse
         display_enable  : out     std_logic := '0';   -- display enable ('1' = display time, '0' = blanking time)
-        col       : out     natural := 0;            -- horizontal pixel coordinate
-        row       : out     natural := 0            -- vertical pixel coordinate
+        col             : out     unsigned(9 downto 0) := "0000000000";  -- horizontal pixel coordinate
+        row             : out     unsigned(9 downto 0) := "0000000000"  -- vertical pixel coordinate
         );
 end  VGA_controller;
 
@@ -77,8 +71,8 @@ architecture Behavioral of VGA_controller is
             h_sync <= '0';  
             v_count <= 0;
             v_sync <= '0';  
-            col <= 0;
-            row <= 0;
+            col <= (others => '0');
+            row <= (others => '0');
         elsif rising_edge(px_clk) then
 
             -- Counters 
@@ -107,10 +101,12 @@ architecture Behavioral of VGA_controller is
 
             -- Set pixel coordinates
             if h_count < HD then
-                col <= h_count;
+                -- col <= h_count;
+                col <= to_unsigned(h_count,10);
             end if;
             if v_count < VD then
-                row <= v_count;
+                -- row <= v_count;
+                row <= to_unsigned(v_count,10);
             end if;
 
             -- Display enable generation
