@@ -5,6 +5,7 @@
 /SpaceInvaders_Project
 
 *.code-workspace
+*.gdoc
 # Except
 
 !/.gitignore
