@@ -1,23 +1,21 @@
--- Object-Mapped Pixel Generation Circuit
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity graph is
     generic (
-        HD  : unsigned(9 downto 0) := to_unsigned(640, 10);  -- horizontal display (active video area)
-        VD  : unsigned(9 downto 0) := to_unsigned(480, 10)   -- vertical display
+        HD  : unsigned(9 downto 0) := to_unsigned(640, 10);  -- horizontal size
+        VD  : unsigned(9 downto 0) := to_unsigned(480, 10)   -- vertical size
     );
     port (
         px_clk : in std_logic;
         display_enable  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
-        -- previously row and col were naturals
         row       :  in   unsigned(9 downto 0);  -- row pixel coordinate
         col       :  in   unsigned(9 downto 0);  -- column pixel coordinate
         up, down, left, right, mid : in std_logic;
-        r         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- red magnitude output to dac
-        g         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- green magnitude output to dac
-        b         :  out  std_logic_vector(3 downto 0) := (others => '0')   -- blue magnitude output to dac
+        r         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- red magnitude output
+        g         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- green magnitude output
+        b         :  out  std_logic_vector(3 downto 0) := (others => '0')   -- blue magnitude output
     );
 end graph;
 
@@ -41,46 +39,42 @@ architecture behavioral of graph is
     signal win_rgb : std_logic_vector(2 downto 0) := GREEN;
 
     -- SHIP
-    constant SHIP_WIDTH : unsigned(9 downto 0) := "0000100000";  --natural := 32;
-    constant SHIP_HEIGHT : unsigned(9 downto 0) := "0000100000"; --natural := 32;
-    constant SHIP_STEP: unsigned(9 downto 0) := "0000001010";    --natural := 10; --30
+    constant SHIP_WIDTH : unsigned(9 downto 0) := "0000100000";
+    constant SHIP_HEIGHT : unsigned(9 downto 0) := "0000100000";
+    constant SHIP_STEP: unsigned(9 downto 0) := "0000001010";
 
-    signal ship_x : unsigned(9 downto 0) := shift_right(HD, 1); --integer := HD/2; --shift = divide by 2
-    signal ship_y : unsigned(9 downto 0) := VD - SHIP_HEIGHT; --integer := VD - SHIP_HEIGHT;
-    signal row_ship_address: unsigned(4 downto 0) := "00000"; --natural := 0;
-    signal col_ship_address: unsigned(4 downto 0) := "00000"; --natural := 0;
+    signal ship_x : unsigned(9 downto 0) := shift_right(HD, 1);
+    signal ship_y : unsigned(9 downto 0) := VD - SHIP_HEIGHT;
+    signal row_ship_address: unsigned(4 downto 0) := "00000";
+    signal col_ship_address: unsigned(4 downto 0) := "00000";
     signal ship_on : std_logic := '0';  
     signal ship_rgb : std_logic_vector(2 downto 0);   
 
     -- ROCKET
-    constant ROCKET_WIDTH: unsigned(9 downto 0) := "0000100000";  --natural := 32;
-    constant ROCKET_HEIGHT: unsigned(9 downto 0) := "0000100000"; --natural := 32;
-    constant ROCKET_STEP : unsigned(9 downto 0) := "0000010000";  --natural := 16;
+    constant ROCKET_WIDTH: unsigned(9 downto 0) := "0000100000";
+    constant ROCKET_HEIGHT: unsigned(9 downto 0) := "0000100000";
+    constant ROCKET_STEP : unsigned(9 downto 0) := "0000010000";
 
-    signal rocket_x : unsigned(9 downto 0) := shift_right(HD, 1); --integer := HD/2;
-    signal rocket_y : unsigned(9 downto 0) := VD - ROCKET_HEIGHT; --integer := VD - ROCKET_HEIGHT;
+    signal rocket_x : unsigned(9 downto 0) := shift_right(HD, 1);
+    signal rocket_y : unsigned(9 downto 0) := VD - ROCKET_HEIGHT;
     signal rocket_on: std_logic := '0';
     signal rocket_rgb : std_logic_vector(2 downto 0);
-    signal row_rocket_address: unsigned(4 downto 0) := "00000"; --natural := 0;
-    signal col_rocket_address: unsigned(4 downto 0) := "00000"; --natural := 0;
+    signal row_rocket_address: unsigned(4 downto 0) := "00000";
+    signal col_rocket_address: unsigned(4 downto 0) := "00000";
    
-    -- ENEMY BALL
-    constant EB_WIDTH: unsigned(9 downto 0) := HD; --integer := HD;
-    constant EB_HEIGHT: unsigned(9 downto 0) := "0000100000";       --integer := 32;
-    constant enemy_STEP : unsigned(9 downto 0) := "0000010000";--natural := 16;
+    -- ENEMY
+    constant EB_WIDTH: unsigned(9 downto 0) := HD;
+    constant EB_HEIGHT: unsigned(9 downto 0) := "0000100000";
+    constant enemy_STEP : unsigned(9 downto 0) := "0000010000";
 
-    signal enemy_x : unsigned(9 downto 0) := shift_right(HD, 1); --integer := HD/2;
-    signal enemy_y : unsigned(9 downto 0) := shift_right(EB_HEIGHT, 1);--integer := EB_HEIGHT/2;
-    signal row_enemy_address: unsigned(4 downto 0) := "00000"; --natural := 0;
-    signal col_enemy_address: unsigned(4 downto 0) := "00000"; --natural := 0;
+    signal enemy_x : unsigned(9 downto 0) := shift_right(HD, 1);
+    signal enemy_y : unsigned(9 downto 0) := shift_right(EB_HEIGHT, 1);
+    signal row_enemy_address: unsigned(4 downto 0) := "00000";
+    signal col_enemy_address: unsigned(4 downto 0) := "00000";
     signal enemy_on: std_logic := '0';
     signal enemy_rgb : std_logic_vector(2 downto 0);
-
-    -- INTERNAL CLOCKS
-    signal update_clk : std_logic := '0';
-    signal frame_clk : std_logic := '0';
     
-    -- OTHER
+    -- INTERNAL RGB
     signal graph_rgb : std_logic_vector(2 downto 0) := BLACK;
 
     begin
@@ -103,34 +97,10 @@ architecture behavioral of graph is
             rgb => ship_rgb
         );
 
-        -- internal_clk_proc: process (px_clk, col, row) is
-
-        --     variable n : natural := 0;
-
-        -- begin
-
-        --     if rising_edge(px_clk) then
-
-        --         if col = to_unsigned(0, 10) and row = to_unsigned(0, 10) then
-        --             frame_clk <= not frame_clk;
-        --             n := n + 1;
-        --         end if;
-
-        --         if n > 15 then
-        --             n := 0;
-        --             update_clk <= not update_clk;
-        --         end if;
-
-        --     end if;
-
-        -- end process;
-
-
 
         game_proc: process(px_clk, row, col, up, down, left, right, mid)
         
             variable n : unsigned(4 downto 0) := to_unsigned(0, 5);
-            
 
         begin
 
@@ -156,7 +126,6 @@ architecture behavioral of graph is
 
                     n := n + 1;
 
-                
 
                     -- update enemy ball positions every 16 frames
                     if n = to_unsigned(0, 5) and status = RUNNING then                
@@ -164,7 +133,6 @@ architecture behavioral of graph is
                     end if;   
 
                 end if;
-
             
                 -- Set ship canvas
                 if (col >= ship_x - shift_right(SHIP_WIDTH, 1)) and (col <= ship_x + shift_right(SHIP_WIDTH, 1)) and (row >= ship_y - shift_right(SHIP_HEIGHT, 1)) and (row <= ship_y + shift_right(SHIP_HEIGHT, 1)) then
