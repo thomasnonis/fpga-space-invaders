@@ -43,7 +43,7 @@ begin
         );
 
     
-    image : entity work.Graph
+    image : entity work.Game
         Port map(
             px_clk => px_clk,
             display_enable => display_enable,

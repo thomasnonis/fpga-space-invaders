@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity graph is
+entity Game is
     generic (
         HD  : unsigned(9 downto 0) := to_unsigned(640, 10);  -- horizontal size
         VD  : unsigned(9 downto 0) := to_unsigned(480, 10)   -- vertical size
@@ -17,9 +17,9 @@ entity graph is
         g         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- green magnitude output
         b         :  out  std_logic_vector(3 downto 0) := (others => '0')   -- blue magnitude output
     );
-end graph;
+end Game;
 
-architecture behavioral of graph is
+architecture behavioral of Game is
 
     -- COLOR CONSTANTS
     constant RED : std_logic_vector(2 downto 0) := "100";
