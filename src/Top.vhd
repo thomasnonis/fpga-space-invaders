@@ -5,17 +5,14 @@ use ieee.numeric_std.all;
 entity Top is
     Port (
         sys_clk : in std_logic;
-        btn_up : in std_logic;
         btn_down : in std_logic;
         btn_left : in std_logic;
         btn_right : in std_logic;
-        btn_mid : in std_logic;
         r : out std_logic_vector(3 downto 0);
         g : out std_logic_vector(3 downto 0);
         b : out std_logic_vector(3 downto 0);
         h_sync : out std_logic;
-        v_sync : out std_logic;
-        led : out std_logic_vector(7 downto 0)
+        v_sync : out std_logic
     );
 end Top;
 
@@ -49,11 +46,9 @@ begin
             display_enable => display_enable,
             row => row,
             col => col,
-            up => btn_up,
             down => btn_down,
             left => btn_left,
             right => btn_right,
-            mid => btn_mid,
             r => r,
             g => g,
             b => b

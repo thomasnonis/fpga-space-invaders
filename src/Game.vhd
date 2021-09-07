@@ -12,7 +12,7 @@ entity Game is
         display_enable  :  in   std_logic;  -- display enable ('1' = display time, '0' = blanking time)
         row       :  in   unsigned(9 downto 0);  -- row pixel coordinate
         col       :  in   unsigned(9 downto 0);  -- column pixel coordinate
-        up, down, left, right, mid : in std_logic;
+        down, left, right : in std_logic;
         r         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- red magnitude output
         g         :  out  std_logic_vector(3 downto 0) := (others => '0');  -- green magnitude output
         b         :  out  std_logic_vector(3 downto 0) := (others => '0')   -- blue magnitude output
@@ -98,7 +98,7 @@ architecture behavioral of Game is
         );
 
 
-        game_proc: process(px_clk, row, col, up, down, left, right, mid)
+        game_proc: process(px_clk, row, col, down, left, right)
         
             variable n : unsigned(4 downto 0) := to_unsigned(0, 5);
 
@@ -127,7 +127,7 @@ architecture behavioral of Game is
                     n := n + 1;
 
 
-                    -- update enemy ball positions every 16 frames
+                    -- update enemy position every 16 frames
                     if n = to_unsigned(0, 5) and status = RUNNING then                
                         enemy_y <= enemy_y + enemy_STEP;                
                     end if;   
