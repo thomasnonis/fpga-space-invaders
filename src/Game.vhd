@@ -116,9 +116,9 @@ architecture behavioral of Game is
                             status <= RUNNING;
                         end if;
 
-                        if left = '1' and ship_x - shift_right(SHIP_WIDTH, 1) > to_unsigned(0, 10) then
+                        if left = '1' and ship_x - shift_right(SHIP_WIDTH, 1) > to_unsigned(15, 10) then
                             ship_x <= ship_x - SHIP_STEP;
-                        elsif right = '1' and ship_x + shift_right(SHIP_WIDTH, 1) < HD - to_unsigned(1, 10) then
+                        elsif right = '1' and ship_x + shift_right(SHIP_WIDTH, 1) < HD - to_unsigned(15, 10) then
                             ship_x <= ship_x + SHIP_STEP;
                         end if;
 
